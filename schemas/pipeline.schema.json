@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://jobpilot.local/schemas/pipeline.schema.json",
+  "title": "JobPilot Pipeline",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["role_id", "company_domain", "pipeline_state", "updated_at"],
+    "properties": {
+      "role_id": {
+        "type": "string",
+        "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*-[0-9]{8}$"
+      },
+      "company_domain": {"type": "string", "minLength": 1},
+      "pipeline_state": {
+        "type": "string",
+        "enum": [
+          "sourced",
+          "liveness_pending",
+          "f1_pending",
+          "f1_passed",
+          "f1_failed",
+          "researched",
+          "f2_passed",
+          "f2_failed",
+          "f2_blocked",
+          "ready_to_submit",
+          "applied",
+          "first_call",
+          "interview_scheduled",
+          "post_interview",
+          "closed",
+          "error"
+        ]
+      },
+      "updated_at": {"type": "string", "format": "date-time"},
+      "last_error": {"type": ["string", "null"]}
+    }
+  }
+}
+

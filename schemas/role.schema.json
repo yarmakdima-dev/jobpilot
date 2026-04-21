@@ -1,0 +1,150 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://jobpilot.local/schemas/role.schema.json",
+  "title": "JobPilot Role",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "role_id",
+    "company_domain",
+    "source",
+    "jd",
+    "liveness",
+    "filter_status",
+    "pipeline_state",
+    "state_history",
+    "debrief_ref"
+  ],
+  "properties": {
+    "role_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*-[0-9]{8}$"
+    },
+    "company_domain": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["url", "platform", "discovered_at"],
+      "properties": {
+        "url": {"type": "string", "format": "uri"},
+        "platform": {
+          "type": "string",
+          "enum": ["linkedin", "indeed", "company_site", "rss", "other"]
+        },
+        "discovered_at": {"type": "string", "format": "date-time"}
+      }
+    },
+    "jd": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["title", "body", "location_stated", "comp_stated"],
+      "properties": {
+        "title": {"type": "string", "minLength": 1},
+        "body": {"type": "string", "minLength": 1},
+        "location_stated": {"type": "string"},
+        "comp_stated": {"type": ["string", "null"]}
+      }
+    },
+    "liveness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["last_checked", "status", "last_check_method"],
+      "properties": {
+        "last_checked": {"type": ["string", "null"], "format": "date-time"},
+        "status": {"type": "string", "enum": ["alive", "dead", "unknown"]},
+        "last_check_method": {
+          "type": ["string", "null"],
+          "enum": ["playwright", "manual", null]
+        }
+      }
+    },
+    "filter_status": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["f1", "f2"],
+      "properties": {
+        "f1": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["status", "failed_gates", "checked_at", "rubric_version"],
+          "properties": {
+            "status": {
+              "type": "string",
+              "enum": ["pending", "pass", "fail", "near_miss"]
+            },
+            "failed_gates": {
+              "type": "array",
+              "items": {"type": "string"}
+            },
+            "checked_at": {"type": ["string", "null"], "format": "date-time"},
+            "rubric_version": {"type": ["string", "null"]}
+          }
+        },
+        "f2": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "stance",
+            "checked_at",
+            "rubric_version",
+            "synthesis_ref"
+          ],
+          "properties": {
+            "status": {
+              "type": "string",
+              "enum": ["pending", "pass", "fail", "blocked"]
+            },
+            "stance": {
+              "type": ["string", "null"],
+              "enum": ["go", "probe", "stop", "blocked", null]
+            },
+            "checked_at": {"type": ["string", "null"], "format": "date-time"},
+            "rubric_version": {"type": ["string", "null"]},
+            "synthesis_ref": {"type": ["string", "null"]}
+          }
+        }
+      }
+    },
+    "pipeline_state": {
+      "type": "string",
+      "enum": [
+        "sourced",
+        "liveness_pending",
+        "f1_pending",
+        "f1_passed",
+        "f1_failed",
+        "researched",
+        "f2_passed",
+        "f2_failed",
+        "f2_blocked",
+        "ready_to_submit",
+        "applied",
+        "first_call",
+        "interview_scheduled",
+        "post_interview",
+        "closed",
+        "error"
+      ]
+    },
+    "state_history": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["from", "to", "at", "reason"],
+        "properties": {
+          "from": {"type": "string"},
+          "to": {"type": "string"},
+          "at": {"type": "string", "format": "date-time"},
+          "reason": {"type": "string"}
+        }
+      }
+    },
+    "debrief_ref": {"type": ["string", "null"]}
+  }
+}
+

@@ -1,0 +1,221 @@
+{
+  "_meta": {
+    "schema_version": "0.2",
+    "schema_purpose": "Canonical company profile schema for opportunity evaluation. Populated by research agent. Consumed by scoring agent + downstream agents (CV, cover letter, interview prep).",
+    "changelog": [
+      "v0.2 (2026-04-21): Added 360_synthesis block (hybrid C-model with rubric version tag), name_confusion_check, gate_needs_judgment_call array, parallel_business_flag in leadership, structured war_position per leader. Driven by MEDvidi evaluation.",
+      "v0.1: Initial schema covering snapshot, business_model, strategy, leadership, market_view, insider_signal, hiring_signal, operator_fit, risks."
+    ],
+    "consumption_model": "Hybrid (Option C from Layer 1 decision 2026-04-21). Research agent populates facts + signals. Scoring agent populates 360_synthesis. Downstream agents read profile. If synthesis_rubric_version != current_rubric_version, downstream agents trigger re-synthesis before proceeding."
+  },
+
+  "instance_meta": {
+    "generated": "ISO-8601 date",
+    "target_role": "string",
+    "role_url": "string",
+    "research_depth": "light | medium | heavy",
+    "researcher": "agent_id or human",
+    "confidence_notes": "string — flag what relies on self-reported vs verified data, what's missing, known gotchas (e.g. name confusion)"
+  },
+
+  "name_confusion_check": {
+    "_purpose": "Proactively surface similarly-named companies that could contaminate research. Added v0.2 after MEDvidi/MEDVi confusion during that evaluation. Research agent MUST populate this field — even a null explicit entry is a signal the agent looked.",
+    "similar_names_found": [
+      {
+        "name": "string — the lookalike",
+        "domain": "string",
+        "distinguishing_facts": "string — what separates this entity from the target",
+        "contamination_risk": "low | medium | high",
+        "notes": "string — e.g. 'shares TCPA class-action plaintiffs bar', 'similar revenue model', 'frequently confused in press coverage'"
+      }
+    ],
+    "none_found": "boolean — true if agent actively searched and found no confusable lookalikes"
+  },
+
+  "snapshot": {
+    "legal_name": "string",
+    "dba": "string | null",
+    "domain": "string",
+    "secondary_domains": ["string"],
+    "founded": "year",
+    "hq": "string",
+    "primary_market": "string — country/region",
+    "sector": "string",
+    "sub_sector": "string",
+    "headcount_estimate": "string — include date of estimate",
+    "funding_stage": "string",
+    "profitability_claim": "string — note if self-reported vs verified"
+  },
+
+  "business_model": {
+    "revenue_model": "string",
+    "pricing": "object | string",
+    "core_services": ["string"],
+    "structure": "string — legal/operational structure (MSO/PC, franchise, platform, etc.)",
+    "customer_base_size_claim": "string",
+    "revenue_claim": "string — note if self-reported",
+    "customer_satisfaction_signals": "string"
+  },
+
+  "strategy_and_direction": {
+    "stated_mission": "string",
+    "growth_vector": "string",
+    "recent_moves": ["string — dated events"],
+    "strategic_bets": ["string"],
+    "tam_claim": "string | null"
+  },
+
+  "leadership": {
+    "_note": "Each leader entry now carries war_position (if RU/BY origin) and parallel_business_flag. See field definitions below.",
+
+    "_leader_entry_schema": {
+      "name": "string",
+      "title": "string",
+      "origin": "string — country of origin, relevant for carve-out gates",
+      "current_base": "string",
+      "background": "string — prior roles, exits, track record",
+      "public_voice_signal": "string — how they present publicly; relevant for manager-quality pre-signal",
+
+      "war_position": {
+        "_purpose": "Added v0.2. Structured per-leader field for RU/BY-origin founders. Per rubric v0.2, RU and BY origin are scored asymmetrically (see rubric.asymmetric_war_position_logic).",
+        "applies": "boolean — true only if origin is RU or BY; else null/false and all sub-fields are N/A",
+        "value": "explicit_anti_war | explicit_pro_war | accommodative | silent | not_researched | null",
+        "evidence": "string — source and quote if explicit; 'no public statements found in [search scope]' if silent",
+        "research_scope": "string — what the agent actually searched (e.g. 'LinkedIn + web + Russian-language sources + published interviews')",
+        "confidence": "high | medium | low — low if search scope was limited or language-barriered"
+      },
+
+      "parallel_business_flag": {
+        "_purpose": "Added v0.2. Flags when a leader is actively operating another business alongside their role at the target company. Particularly material when the parallel business is in a carve-out jurisdiction (RU/BY).",
+        "present": "boolean",
+        "businesses": [
+          {
+            "name": "string",
+            "role": "string — CEO, founder, board, advisor",
+            "jurisdiction": "string — country where the parallel business operates",
+            "active": "boolean",
+            "overlap_risk": "string — is there engineering/data/PHI overlap between the parallel business and the target company?",
+            "carve_out_escalation": "boolean — true if jurisdiction is in RU/BY or other carve-out region"
+          }
+        ]
+      },
+
+      "concentration_risk_notes": "string — e.g. 'CEO personally drives public narrative, unclear how much is delegated'"
+    },
+
+    "ceo": "leader_entry",
+    "co_founders": ["leader_entry"],
+    "c_suite": ["leader_entry"],
+    "board": ["leader_entry"],
+    "advisors_referenced_in_role": ["leader_entry"],
+    "leadership_pattern_observations": ["string"]
+  },
+
+  "market_view_outside_in": {
+    "competitive_set": ["string"],
+    "market_regulatory_context": "string",
+    "macro_tailwinds": ["string"],
+    "macro_headwinds": ["string"]
+  },
+
+  "insider_signal_self_description": {
+    "jd_language_excerpts": ["string"],
+    "ceo_recent_public_voice": ["string — dated quotes"],
+    "dissonance_flags": ["string — where JD claims don't match public voice"]
+  },
+
+  "hiring_signal": {
+    "role_seniority": "string",
+    "comp_range": "string",
+    "location_policy": "string",
+    "location_fit_for_user": "string — resolve relocation-gate question here",
+    "mandate_tier": "1 | 2 | 3",
+    "hand_off_test_status": "string — 'unknown — test in call' or actual answer if surfaced",
+    "red_flags_in_jd": ["string"],
+    "green_flags_in_jd": ["string"]
+  },
+
+  "risks_and_open_questions": {
+    "regulatory_risk": {
+      "level": "low | medium | high",
+      "notes": "string"
+    },
+    "litigation_risk": {
+      "level": "low | medium | high",
+      "active_cases": [
+        {
+          "case": "string",
+          "type": "string",
+          "status": "string",
+          "materiality": "string"
+        }
+      ]
+    },
+    "governance_flags": ["string"],
+    "domain_exclusion_check": "string — PASS | FAIL with reasoning"
+  },
+
+  "gate_needs_judgment_call": {
+    "_purpose": "Added v0.2. Explicit array of gates that cannot be auto-resolved from public research. Scoring agent and downstream agents check this array before proceeding. If non-empty, downstream work is blocked pending human resolution OR explicit override.",
+    "blocked": "boolean — true if any gate_id in the array is unresolved",
+    "items": [
+      {
+        "gate_id": "string — matches a gate id from rubric",
+        "reason": "string — why public research couldn't resolve it",
+        "signals_pro": ["string"],
+        "signals_con": ["string"],
+        "recommended_probes": ["string — specific questions to ask in first call to resolve"]
+      }
+    ]
+  },
+
+  "360_synthesis": {
+    "_purpose": "Added v0.2. The scoring agent's integrated read — stance + reasoning — based on everything above. Per hybrid C-model: cached here, consumed by downstream agents, re-generated when rubric version changes or manual trigger fires.",
+
+    "synthesis_rubric_version": "string — rubric version this synthesis was generated against. If != current rubric version, downstream agents must trigger re-synthesis.",
+    "synthesis_generated": "ISO-8601 timestamp",
+    "synthesis_agent": "string — which agent/model produced this",
+    "synthesis_trigger": "initial | rubric_version_bump | manual_refresh | first_call_update",
+
+    "stance": "go | probe | stop | blocked",
+    "stance_one_line": "string — single sentence summary of the recommendation",
+    "stance_reasoning": "string — 2-4 paragraphs on why. Integrates hard gates, scored criteria, override rules, judgment-call gates. Reads like the 'Operator fit — my read' section of a human-readable 360.",
+
+    "top_findings": [
+      {
+        "finding": "string",
+        "severity": "critical | material | notable",
+        "type": "positive | negative | flag"
+      }
+    ],
+
+    "scored_criteria_rollup": {
+      "manager_quality": "strong | acceptable | weak | unknown",
+      "build_mandate_tier": "1 | 2 | 3",
+      "ai_mandate_binary": "yes | no",
+      "growth_stage_fit": "yes | no"
+    },
+
+    "hard_gates_rollup": {
+      "all_passed": "boolean",
+      "any_failed": ["gate_id"],
+      "any_judgment_call": ["gate_id"]
+    },
+
+    "override_rules_invoked": ["string — which override applied and why"],
+
+    "first_call_probes": [
+      "string — prioritized list of questions for first conversation. Includes gate-resolution probes (from gate_needs_judgment_call) plus scored-criteria probes (manager-quality pressure tests, hand-off test, etc.)"
+    ],
+
+    "recommended_next_action": "string — concrete, e.g. 'apply cold', 'warm intro first', 'resolve gate X before engagement', 'pass'"
+  },
+
+  "source_index": {
+    "_format": "Keys are short IDs (S1, S2, ...). Values are URLs. All factual claims in the profile should cite source IDs.",
+    "_example": {
+      "S1": "https://example.com/jd",
+      "S2": "https://example.com/ceo-linkedin"
+    }
+  }
+}

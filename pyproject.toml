@@ -1,0 +1,27 @@
+[project]
+name = "jobpilot"
+version = "0.1.0"
+description = "Agentic job application system foundation"
+requires-python = ">=3.11"
+dependencies = [
+  "jsonschema>=4.23.0,<5",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0.0,<9",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.setuptools.packages.find]
+include = ["orchestrator*"]
+
+[tool.black]
+line-length = 88
+target-version = ["py311"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py311"
