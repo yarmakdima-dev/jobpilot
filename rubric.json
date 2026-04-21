@@ -1,0 +1,333 @@
+{
+  "_meta": {
+    "version": "0.2",
+    "session": "layer_1_opportunity_scoring",
+    "status": "partial — layers 2–5 pending",
+    "changelog": [
+      "v0.2 (2026-04-21): Revised russian_market_or_business carve-out into asymmetric RU/BY logic. Added structured war_position handling. Added parallel_business_flag gate trigger. Added gate_needs_judgment_call pattern. Triggered by MEDvidi evaluation which surfaced the BY-origin gap in v0.1."
+    ],
+    "notes": "Rubric is not a flat weighted average. Manager quality is both the highest-weighted criterion AND a gating multiplier on everything else. See `scoring_architecture`."
+  },
+
+  "scoring_architecture": {
+    "rule": "Manager quality gates the rest.",
+    "step_1": "Score manager quality. If below threshold, reject regardless of other scores.",
+    "step_2": "If manager quality is above threshold, their score sets the ceiling on how much the other criteria can flex. A high manager score expands negotiability on build mandate, AI mandate, and growth-stage. A merely-acceptable manager keeps the other criteria closer to their ideal profile.",
+    "implication": "Exceptional managers unlock overrides downstream. This is why 'no AI mandate' can be tolerable when the CEO is exceptional and build mandate is real."
+  },
+
+  "hard_gates": [
+    {
+      "id": "belarusian_market_focus",
+      "test": "Company's primary market is Belarus (not just HQ — actual market focus).",
+      "source_of_signal": "Company website, customer list, revenue geography in press/reports, investor decks.",
+      "false_positive_pattern": "Belarusian HQ but international market focus — NOT disqualifying. HQ location alone is irrelevant."
+    },
+    {
+      "id": "russian_or_belarusian_market_or_business",
+      "_revised_from_v0.1": "Was 'russian_market_or_business'. Expanded to include Belarus explicitly given BY's co-belligerent status (territory used for invasion, missile launches, joint drills). Carve-out logic is now asymmetric between RU and BY origin to reflect different personal-risk realities for leaders speaking publicly.",
+      "test": "Company serves the Russian or Belarusian market OR is a Russian/Belarusian business.",
+      "source_of_signal": "Customer geography, legal entity structure, founder/leadership origin and movement, public statements on war in Ukraine, parallel business operations in RU/BY.",
+      "false_positive_pattern": "None — market-serving or RU/BY-business case is firm.",
+      "carve_out": {
+        "description": "Russian or Belarusian founders/businesses who have left RU/BY and are reinventing in a new environment. Market is outside RU/BY, customers outside RU/BY, structure legible in a non-RU/BY jurisdiction.",
+        "evaluation_mode": "Heavy scrutiny, case by case. Default posture: skeptical.",
+
+        "hard_disqualifying_signals_any_one_is_enough": [
+          "Current Russian OR Belarusian revenue",
+          "Opaque company structure (ownership/operations not cleanly traceable outside RU/BY)",
+          "Explicit pro-war position from any leader",
+          "Accommodative attitude toward the war (partnerships with sanctioned entities, RU/BY-government-aligned hires, refusals to speak when directly asked in-process)"
+        ],
+
+        "asymmetric_war_position_logic": {
+          "principle": "Silence-as-signal applies differently to RU vs BY origin because the personal-risk cost of public anti-war positioning differs materially between the two. Russian leaders abroad can speak without endangering family left in Russia in most cases; Belarusian leaders with family in BY face documented Lukashenko-regime retaliation risk for public statements made abroad. This asymmetry must be reflected in scoring.",
+
+          "RU_origin_leaders": {
+            "silent": "Negative signal. Absence of anti-war position is scored against the carve-out case.",
+            "explicit_anti_war": "Clears the carve-out on this dimension. Treated as baseline-positive.",
+            "explicit_pro_war_or_accommodative": "Hard disqualifier."
+          },
+
+          "BY_origin_leaders": {
+            "silent": "Informational, NOT scored against by default. Rationale: BY-origin leaders with family in Belarus face real persecution risk for public anti-war statements. Silence is context-dependent, not evidence of accommodation. HOWEVER: escalates to a scored-negative signal if combined with any of: active BY operational footprint at leadership level, opaque structure, known family/business ties to the regime.",
+            "explicit_anti_war": "Clears the carve-out AND treated as stronger-positive than RU-origin equivalent, because BY-origin leaders taking an explicit public position are accepting a higher personal cost to do so.",
+            "explicit_pro_war_or_accommodative": "Hard disqualifier."
+          },
+
+          "evaluation_note": "When the scoring agent encounters a `silent` war_position for a BY-origin leader, it must check for escalating co-signals before flagging. A lone BY-silent leader in an otherwise-clean profile is not a gate failure."
+        },
+
+        "parallel_business_escalation": {
+          "description": "When a leader's `parallel_business_flag` includes an active operation in RU or BY, this is treated as a signal regardless of war_position, because it indicates active operational entanglement with a regime-aligned jurisdiction. This is distinct from war_position scoring and carries its own weight.",
+          "severity": "Flag for judgment call. Not auto-disqualifying. Probe in first call: structural separation, PHI/data-handling implications, dependence of primary business on the parallel operation.",
+          "example": "CTO of a US healthcare company running a Minsk-based IT outsourcing firm in parallel = probe territory. This is a governance and data-handling question as well as a values question."
+        }
+      }
+    },
+    {
+      "id": "relocation_required",
+      "test": "Role requires relocation from Warsaw.",
+      "source_of_signal": "JD location field, interview conversations, company policy on remote/hybrid.",
+      "false_positive_pattern": "Occasional travel outside Warsaw, including up to a week at a time, is fine — NOT disqualifying. Only full relocation is a hard gate.",
+      "clarifying_probe_when_ambiguous": "When JD says 'Remote - USA' or similar, resolve whether this is a US-residency requirement, a time-zone-alignment requirement, or a tax/payroll constraint. Do not auto-fail without clarification."
+    },
+    {
+      "id": "compensation_floor",
+      "test": "Total monthly compensation (net, in-hand) below $3K USD equivalent.",
+      "source_of_signal": "Compensation discussions during process.",
+      "false_positive_pattern": "None — absolute floor, no flex for equity, learning, or runway.",
+      "additional_context": "Target total comp ~$200K/year. The $3K net floor leaves room for various comp structures (salary mix, equity, other forms) within that envelope."
+    },
+    {
+      "id": "excluded_domain_gambling",
+      "test": "Company's core business is casinos or betting.",
+      "source_of_signal": "Company positioning, product description, regulatory licensing.",
+      "false_positive_pattern": "Adjacent domains (fantasy sports, skill-games with prizes, crypto-trading-as-gambling) — need case review; crypto is separately excluded regardless."
+    },
+    {
+      "id": "excluded_domain_dating",
+      "test": "Company's core business is romantic/sexual matching.",
+      "source_of_signal": "Product description, user base, positioning.",
+      "false_positive_pattern": "Professional networking, friendship, family-matching for marriage in specific cultures — these are NOT the target of this exclusion.",
+      "additional_flag": "Any product that functions as prostitution-adjacent, regardless of how it's labeled, is also excluded."
+    },
+    {
+      "id": "excluded_domain_tobacco_alcohol_vaping_cannabis",
+      "test": "Company's core business is tobacco, alcohol, vaping, or cannabis.",
+      "source_of_signal": "Product catalog, revenue breakdown.",
+      "false_positive_pattern": "None identified yet."
+    },
+    {
+      "id": "excluded_domain_adult_content",
+      "test": "Company's core business is adult content or the sex industry (distinct from dating).",
+      "source_of_signal": "Product description, revenue model.",
+      "false_positive_pattern": "None identified yet."
+    },
+    {
+      "id": "excluded_domain_crypto_speculative_finance",
+      "test": "Company's core business is crypto or speculative finance (distinct from gambling).",
+      "source_of_signal": "Product description, revenue model.",
+      "false_positive_pattern": "TBD — fintech serving crypto-adjacent but non-speculative use cases may merit case review; flag for discussion when encountered."
+    },
+    {
+      "id": "excluded_domain_mlm",
+      "test": "Company operates as MLM, network marketing, or a 'business opportunity' structure.",
+      "source_of_signal": "Revenue model, commission structure, product vs. recruitment emphasis.",
+      "false_positive_pattern": "None identified yet."
+    }
+  ],
+
+  "case_by_case_gates": [
+    {
+      "id": "war_related",
+      "test": "Company is in defense, military, weapons, dual-use, or war-adjacent domains.",
+      "source_of_signal": "Customer list, product description, regulatory classification.",
+      "evaluation_mode": "Strong survey, case by case. Not a blanket no. Sub-rules pending (likely to surface around: defensive vs. offensive; end customer; company's stated position; dual-use framing).",
+      "default_posture": "Skeptical until proven otherwise."
+    },
+    {
+      "id": "labor_exploitation_patterns",
+      "test": "Company operates in industries with known labor-exploitation patterns (fast fashion, exploitative gig-economy models, similar).",
+      "source_of_signal": "Industry reputation, supply chain practices, labor reports, worker testimonials.",
+      "evaluation_mode": "Strict due diligence, case by case. Same treatment as war-related.",
+      "default_posture": "Skeptical until proven otherwise."
+    }
+  ],
+
+  "gate_needs_judgment_call_pattern": {
+    "description": "Some gates cannot be resolved from public research alone. When a gate enters this state, the scoring agent does not auto-pass or auto-fail — it escalates to the human with a specific set of probes designed to resolve the ambiguity in first-call conversation.",
+    "field_on_profile": "gate_needs_judgment_call — array of { gate_id, reason, recommended_probes }",
+    "agent_behavior": "When any gate is in this state, downstream agents (CV, cover letter) do NOT proceed automatically. The human must either resolve the gate manually or explicitly authorize downstream work with the gate unresolved.",
+    "examples_that_trigger_this_state": [
+      "Founder origin is RU/BY and war_position is null because research found no public statements (cannot distinguish silent from not-yet-researched without direct ask)",
+      "Parallel_business_flag is present with RU/BY jurisdiction (probe needed on structural separation)",
+      "Relocation clause is ambiguous (e.g., 'Remote - USA' could mean US-residency or US-time-zone)",
+      "War-related or labor-exploitation gate triggers (always case-by-case)"
+    ]
+  },
+
+  "scored_criteria": [
+    {
+      "id": "manager_quality_thinking_partner",
+      "rank": 1,
+      "role": "DOMINANT + gating multiplier on all other criteria",
+      "test": "The hiring manager (CEO or whoever owns the role) wants a thinking partner, not an implementer.",
+      "signals_ranked": [
+        {
+          "rank": 1,
+          "signal": "Admits constraints and problems unprompted — not press-release mode. Talks about what's NOT working.",
+          "detection": "In first calls: do they drop the polished register within 10–30 minutes? Or do they stay in pitch mode?"
+        },
+        {
+          "rank": 2,
+          "signal": "Hires for trajectory and decision patterns, not checklist. Probes turning points in your CV, not line items.",
+          "detection": "Interview style: do they ask 'why did you leave X, what made you decide that' and keep going past the surface answer? Or do they run behavioral-framework questions ('tell me about a time you led a team')?",
+          "sub_rule": "If the CEO delegates most of the interview to the team, the team should apply the same lens. Absence of this lens anywhere in the process = red flag."
+        },
+        {
+          "rank": 3,
+          "signal": "Firm but adaptive. Has a clear position, will update it when presented with something they hadn't considered. Doesn't cave, doesn't dig in.",
+          "detection": "Disagree with them in the call. Do they lean in or smooth over?"
+        },
+        {
+          "rank": 4,
+          "signal": "Values honest replies over nice talk.",
+          "detection": "Related to #3 — pushback in either direction is welcomed, not deflected."
+        },
+        {
+          "rank": 5,
+          "signal": "Passionate about the work itself — product, service, domain — not about the fundraise, logo, or exit.",
+          "detection": "What do they spend time on in the call? What lights them up?"
+        },
+        {
+          "rank": 6,
+          "signal": "Genuinely interested in you as a person, while setting/respecting personal boundaries.",
+          "detection": "Do they ask about you outside the role? Without oversharing or performative bonding?"
+        }
+      ],
+      "gating_rule": "If manager quality scores below threshold, reject regardless of other scores. If it scores high, other criteria become negotiable.",
+      "ceo_delegation_rule": {
+        "description": "CEO delegating most of the interview is acceptable — even positive — IF the CEO shows up for personal-fit check at minimum.",
+        "positive_framing": "C-suite functioning as 'collective CEO' — each C-level owning a slice of the traditional CEO role at higher complexity — is a strong positive signal. The hiring process itself demonstrates the operating model.",
+        "absolute_disqualifier": "CEO not present at all for personal fit = CEO is not leading the team. Hard fail on this criterion."
+      },
+      "positive_example": "CEO in first call describes market headwinds openly, names a recent failed initiative, asks why you left your last role and keeps going past the surface answer, disagrees with you on one point then updates after you explain.",
+      "negative_example": "CEO spends 40 minutes on company vision without naming a single current challenge. Asks behavioral-framework questions ('tell me about a time you drove cross-functional alignment'). Describes the role through what's failing around them and how nothing works without their 24/7 presence."
+    },
+    {
+      "id": "build_mandate_real",
+      "rank": 2,
+      "test": "A genuine mandate for change exists, rooted in a deep need — not aspirational 'build' language in the JD.",
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "Diagnosed need",
+          "description": "Leadership can articulate the need clearly: rapid growth, shifted market, AI disruption, etc. Strongest mandate.",
+          "signal": "In interviews, they can name the specific problem and why now."
+        },
+        {
+          "tier": 2,
+          "name": "Felt but unnamed need",
+          "description": "Leadership knows something's wrong but can't diagnose it yet. Symptoms without diagnosis.",
+          "signal": "Substantial discussion of worrying signals in interview. Naming the problem becomes part of the role.",
+          "status": "Still a YES. Not a red flag — this IS the job."
+        },
+        {
+          "tier": 3,
+          "name": "No felt need, only build-language in JD",
+          "description": "'Greenfield opportunity,' 'define the function,' 'build from the ground up' as marketing copy, with no underlying pain.",
+          "status": "Disqualifying on this criterion."
+        }
+      ],
+      "hand_off_sub_test": {
+        "description": "When the hiring manager describes the function, can they describe what they will STOP doing once you're in the seat?",
+        "healthy_signal": "Describes the function as a body of work ready to be handed off. Talks in consumable chunks. Frames conversation as a transition: here's what exists, here's what's next, here's where you'd take it. Tone is generative.",
+        "control_signal_disqualifying": "Describes the function through others' failures. '24/7 presence required.' 'Nothing works without me.' Defines the role as filling perceived gaps in everyone else. Tone is depletive. No clear answer to 'what will you stop doing?'"
+      },
+      "ambiguous_signal_domain_mastery": {
+        "description": "A leader deep in the process minutiae is ambiguous — could be healthy (built it, ready to hand off) or could be micromanager rationalized as expertise.",
+        "disambiguator": "Healthy: describes minutiae in ready-to-consume chunks, transition-mode. Control: describes minutiae through others' failures, needs-me-always mode."
+      }
+    },
+    {
+      "id": "ai_mandate",
+      "rank": 3,
+      "test": "Genuine belief + active demand for AI-powered business-process reengineering. NOT current adoption; NOT feature-level AI; NOT sector-adjacency.",
+      "classifier": "BINARY. AI mandate OR not-AI-mandate. 'Adjacent' and 'absent' collapse to the same bucket.",
+      "positive_example": "Company has zero AI deployed. CEO says: 'Our processes are from the pre-AI era and we need to rebuild them. I don't know exactly what that looks like yet but that's why I'm hiring.'",
+      "negative_example": "Company has shipped AI features. AI is positioned as a product checkbox. No one at leadership is thinking about AI as a lens for reengineering how the business works.",
+      "override_rule_see_override_rules": "This criterion has an explicit override — see override_rules.ai_mandate_override."
+    },
+    {
+      "id": "growth_stage_with_change_readiness",
+      "rank": 4,
+      "test": "Organization at a scale where a senior operator has leverage, with genuine change mandate. Stage label (scale-up, growth, mid-market) is not the criterion — scale + change-readiness is.",
+      "floors": {
+        "revenue": "$1M ARR minimum — below this, no underlying business to build a function on top of.",
+        "headcount": "~15 people minimum — below this, not enough people to manage."
+      },
+      "ceiling": "No hard cap, but type of org shifts:",
+      "org_types": [
+        {
+          "type": "Scale-ups",
+          "fit": "Natural fit. Change mandate usually baked in."
+        },
+        {
+          "type": "Corporates willing and ready to change",
+          "fit": "In scope, but 'willing and ready' is doing heavy lifting. See sub-rubric below.",
+          "sub_rubric_corporate_readiness": {
+            "description": "Two axes, both must be present, plus supporting signals.",
+            "axis_1_visible_pain": {
+              "rule": "Pain visible BOTH externally AND internally.",
+              "external": "Market hit or endangered — detectable via industry press, analyst reports, stock performance, regulatory pressure, competitive displacement.",
+              "internal": "Leadership openly discussing it — earnings calls, CEO interviews, public statements, LinkedIn from exec team.",
+              "failure_modes": [
+                "External pain + internal silence = denial mode. Disqualifying.",
+                "Internal talk + no external pressure = performance. Disqualifying."
+              ]
+            },
+            "axis_2_proactive_vs_reactive": {
+              "rule": "Proactive framing is STRONGER signal than reactive framing.",
+              "rationale": "Leader discussing challenges they see coming has already done the diagnostic work — past denial, into strategy. Reactive talk can still be real but is noisier (everyone talks when fire is visible)."
+            },
+            "axis_3_hiring_manager_seniority": {
+              "rule": "Higher-level hiring managers discuss the change itself, not just the role. C-level or direct C-report is the floor.",
+              "detection": "In interview: do they spend time on 'why this role now' and 'what changes when you're in the seat' — or on responsibilities and reporting lines?"
+            },
+            "axis_4_budget": {
+              "green_light_1": "Budget already in place.",
+              "green_light_2": "'We're building the business case now and you'd help shape it' — IF the hiring manager has the authority to land it.",
+              "red_light": "'We'll figure out budget later.' = theater."
+            },
+            "axis_5_scar_tissue": {
+              "rule": "Past failed transformation = realism about what change costs. Positive signal.",
+              "detection": "Unlikely to be public unless epic. Probe in interview: 'Has the company tried something like this before? What happened?' Quality of answer separates realists from fantasists."
+            }
+          }
+        },
+        {
+          "type": "Corporates not ready to change",
+          "fit": "Out of scope — optimizing a mature machine isn't the work."
+        }
+      ],
+      "funding_structure": "Irrelevant. Bootstrapped, VC (any series), PE-owned, family-owned — all fine. Filter is change mandate + scale, not cap table."
+    }
+  ],
+
+  "override_rules": [
+    {
+      "id": "ai_mandate_override",
+      "trigger": "Role fails the AI-mandate test (no genuine belief / active demand for AI-powered reengineering).",
+      "action": "Role can still be taken IF both conditions hold: (1) manager quality is exceptional (thinking partner, willing to be moved by evidence); (2) genuine build mandate exists in some other dimension.",
+      "rationale": "Everything and everyone will be affected by AI eventually. A company without the mandate yet is an opportunity window, not a disqualifier. Exceptional manager + real build mandate = runway to educate self on AI and deliver AI-driven results unprompted. 'Results rule.'",
+      "failure_mode": "If either condition is missing, the override does not hold. No amount of any other signal can compensate."
+    },
+    {
+      "id": "manager_quality_gates_everything",
+      "trigger": "Manager quality scores below threshold.",
+      "action": "Reject regardless of all other scores.",
+      "rationale": "The manager is the most important criterion. The rest is negotiable only if the manager works well. No combination of other positives compensates for a weak manager."
+    },
+    {
+      "id": "exceptional_manager_unlocks_negotiability",
+      "trigger": "Manager quality scores exceptionally high.",
+      "action": "Other criteria (build mandate, AI mandate, growth-stage) become flexible and discussable during the process — treat gaps as conversations, not disqualifiers.",
+      "rationale": "Exceptional managers are rare and compounding. Their presence changes what the role actually becomes over 12–24 months."
+    }
+  ],
+
+  "deeper_principles_surfaced": [
+    {
+      "id": "results_rule",
+      "description": "'Results rule' is an operating principle that surfaces as the override mechanism for AI-mandate gaps. Likely to surface in other decision patterns — flag for cross-reference when later layers reveal similar overrides.",
+      "implication_for_agents": "When scoring ambiguous cases, the question 'can I deliver results here without waiting for permission?' is a high-weight consideration."
+    },
+    {
+      "id": "silence_as_signal_asymmetric_by_origin",
+      "_updated_v0.2": "Was 'silence_as_signal_in_russian_carve_out' in v0.1. Revised to reflect RU/BY asymmetry.",
+      "description": "For RU/BY-origin leaders, silence on the war is read differently by origin. RU-origin silence = negative signal (the default scrutiny posture). BY-origin silence = informational-only signal that escalates to negative only when combined with other flags (parallel business in BY, opaque structure, regime-adjacent ties). Rationale: Lukashenko's regime persecutes critics abroad by retaliating against family in Belarus — making public anti-war positions a higher personal cost for BY-origin leaders than for RU-origin equivalents.",
+      "implication_for_agents": "When evaluating RU/BY-origin companies: require explicit public anti-war position from RU-origin leaders (silence = negative). For BY-origin leaders, silence is logged but not scored unless co-signals are present. Explicit anti-war from BY-origin = stronger-positive than RU-origin equivalent due to personal risk asymmetry."
+    }
+  ]
+}
