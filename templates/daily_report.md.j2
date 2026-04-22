@@ -1,0 +1,68 @@
+# JobPilot Daily Report — {{ report_date }}
+
+## Pipeline snapshot
+
+{% if pipeline_total == 0 -%}
+Nothing yet.
+{% else -%}
+| State | Count |
+|---|---:|
+{% for state, count in state_counts.items() -%}
+| {{ state }} | {{ count }} |
+{% endfor %}
+{% endif %}
+
+**Stuck > 7 days:** {% if stuck_roles %}{{ stuck_roles | join(", ") }}{% else %}—{% endif %}
+
+## Needs your attention
+
+| Queue | Roles |
+|---|---|
+| Ready to submit | {% if ready_to_submit %}{{ ready_to_submit | join(", ") }}{% else %}—{% endif %} |
+| F2 blocked | {% if f2_blocked %}{{ f2_blocked | join(", ") }}{% else %}—{% endif %} |
+| Errors | {% if error_roles %}{{ error_roles | join(", ") }}{% else %}—{% endif %} |
+| Inbox events | {% if inbox_events %}{{ inbox_events | join(", ") }}{% else %}—{% endif %} |
+
+## Funnel metrics (7-day)
+
+| Step | Rate | Count |
+|---|---:|---:|
+{% for metric in funnel_metrics -%}
+| {{ metric.label }} | {{ metric.rate }} | {{ metric.numerator }}/{{ metric.denominator }} |
+{% endfor %}
+
+## Near-misses
+
+{% if near_misses -%}
+| Role | Checked at | Failed gates |
+|---|---|---|
+{% for item in near_misses -%}
+| {{ item.role_id }} | {{ item.checked_at }} | {{ item.failed_gates }} |
+{% endfor %}
+{% else -%}
+—
+{% endif %}
+
+## Overrides logged
+
+{% if overrides -%}
+| At | Role | Event | Reason |
+|---|---|---|---|
+{% for item in overrides -%}
+| {{ item.at }} | {{ item.role_id }} | {{ item.event }} | {{ item.reason }} |
+{% endfor %}
+{% else -%}
+—
+{% endif %}
+
+## Errors
+
+{% if errors -%}
+| Role | Reason |
+|---|---|
+{% for item in errors -%}
+| {{ item.role_id }} | {{ item.reason }} |
+{% endfor %}
+{% else -%}
+—
+{% endif %}
