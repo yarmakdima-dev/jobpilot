@@ -1,0 +1,25 @@
+from __future__ import annotations
+
+from orchestrator.state_machine import next_action
+
+
+def test_next_action_returns_none_for_terminal_states() -> None:
+    for state in ["closed", "error", "f1_failed", "f2_failed", "f2_blocked"]:
+        assert next_action({"pipeline_state": state}) is None
+
+
+def test_sourced_waits_for_liveness_after_stub() -> None:
+    action = next_action({"pipeline_state": "sourced"})
+
+    assert action is not None
+    assert action.agent_ids == ("A1.4",)
+    assert action.next_state == "liveness_pending"
+
+
+def test_f2_passed_runs_cv_and_cover_letter_bundle() -> None:
+    action = next_action({"pipeline_state": "f2_passed"})
+
+    assert action is not None
+    assert action.agent_ids == ("A2", "A3")
+    assert action.next_state == "ready_to_submit"
+

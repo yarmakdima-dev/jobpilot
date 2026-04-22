@@ -29,7 +29,7 @@ WRITE_LANES: dict[str, tuple[str, ...]] = {
         "companies/*.json",
         "decisions.log",
     ),
-    "system": ("pipeline.json", "decisions.log"),
+    "system": ("pipeline.json", "decisions.log", "roles/*.json"),
 }
 
 
@@ -57,4 +57,3 @@ def require_lane(writer_id: str, path: str | Path) -> None:
         raise LaneViolationError(
             f"{writer_id!r} is not allowed to write {normalized!r}"
         )
-
