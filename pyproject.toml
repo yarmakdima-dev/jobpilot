@@ -5,6 +5,7 @@ description = "Agentic job application system foundation"
 requires-python = ">=3.11"
 dependencies = [
   "jsonschema>=4.23.0,<5",
+  "pyyaml>=6.0.2,<7",
 ]
 
 [project.optional-dependencies]
