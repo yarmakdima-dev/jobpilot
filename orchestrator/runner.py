@@ -7,12 +7,13 @@ import contextlib
 import fcntl
 import logging
 import time
-from datetime import UTC, datetime
+from datetime import UTC, datetime, time as datetime_time
 from pathlib import Path
 from typing import Iterator
 
 import yaml
 
+from orchestrator import report
 from orchestrator import store
 from orchestrator.state_machine import next_action
 
@@ -43,9 +44,13 @@ def run_daemon(interval_seconds: int | None = None) -> None:
     """Run ticks forever, sleeping between passes."""
     config = load_config()
     sleep_for = interval_seconds or int(config["tick_seconds"])
+    last_report_date = None
     while True:
         try:
             run_tick()
+            last_report_date = maybe_generate_daily_report(
+                config, last_report_date=last_report_date
+            )
         except RunnerLockError:
             LOGGER.warning("another runner is active; skipping this tick")
         except Exception:
@@ -60,6 +65,30 @@ def load_config(path: Path | None = None) -> dict:
         return dict(DEFAULT_CONFIG)
     data = yaml.safe_load(config_path.read_text(encoding="utf-8")) or {}
     return {**DEFAULT_CONFIG, **data}
+
+
+def maybe_generate_daily_report(
+    config: dict,
+    *,
+    now: datetime | None = None,
+    last_report_date: str | None = None,
+) -> str | None:
+    """Generate today's report once the configured local time has passed."""
+    current = now or datetime.now().astimezone()
+    current_date = current.date().isoformat()
+    if last_report_date == current_date:
+        return last_report_date
+
+    report_time = _parse_report_time(str(config["daily_report_time"]))
+    if current.timetz().replace(tzinfo=None) < report_time:
+        return last_report_date
+
+    report_path = store.ROOT / "reports" / f"daily_{current_date}.md"
+    if report_path.exists():
+        return current_date
+
+    report.write_daily_report(current.date())
+    return current_date
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -198,10 +227,13 @@ def _write_pipeline_for_tick(path: Path, rows: list[dict]) -> None:
     store._atomic_write_json(path, rows)
 
 
+def _parse_report_time(value: str) -> datetime_time:
+    return datetime.strptime(value, "%H:%M").time()
+
+
 def _now_iso() -> str:
     return datetime.now(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 
 if __name__ == "__main__":
     raise SystemExit(main())
-
