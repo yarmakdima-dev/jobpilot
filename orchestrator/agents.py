@@ -14,6 +14,11 @@ class AgentResult:
 
     success: bool = True
     reason: str = "stub_success"
+    # Optional override for the next pipeline state.  When set, the runner
+    # uses this value instead of Action.next_state.  This supports agents
+    # (such as A1.4 liveness check) that must choose between two target
+    # states at runtime.
+    next_state: str | None = None
 
 
 class AgentHandler(Protocol):

@@ -56,6 +56,13 @@ This is why the repo looks thin on runtime data: by design, none of it is here. 
 
 - **[Career-Ops](https://github.com/santifer/career-ops)** — shipped Claude Code-based job search system, battle-tested across 740+ evaluations. JobPilot borrows the Data Contract pattern, onboarding contract, liveness check, story bank, modes-as-files principle, and prompt-level HIL enforcement. JobPilot keeps its own rubric-versioning-with-cache-invalidation, judgment-call gate state, and values-based carve-out logic.
 
+## Setup
+
+```bash
+pip install -e ".[dev]"
+playwright install chromium   # required after pip install; downloads the Chromium browser for liveness checks
+```
+
 ## License
 
 MIT. Use, fork, learn from it. If you build something downstream, a link back is appreciated but not required.

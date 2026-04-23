@@ -123,8 +123,16 @@ def _process_row(row: dict) -> dict:
         result = action.handler(role)
         if not result.success:
             raise RuntimeError(result.reason)
+        # Prefer a dynamic next_state from the result (e.g. A1.4 liveness
+        # check chooses between f1_pending and dead at runtime).
+        target_state = result.next_state if result.next_state is not None else action.next_state
+        # Prefer the agent's reason when it is informative; fall back to the
+        # static Action reason for stub handlers.
+        effective_reason = (
+            result.reason if result.reason != "stub_success" else action.reason
+        )
         updated_role = _transition_role(
-            role, action.next_state, action.reason, action.agent_id
+            role, target_state, effective_reason, action.agent_id
         )
         store.write_role(role_id, updated_role, writer_id="system")
         return _sync_row(row, updated_role)

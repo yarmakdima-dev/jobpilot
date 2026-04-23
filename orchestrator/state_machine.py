@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from orchestrator.agents import AgentHandler, run_agent
+from orchestrator.agents import AgentHandler, AgentResult, run_agent
+from orchestrator.liveness import check_liveness
 
 
 @dataclass(frozen=True)
@@ -24,16 +25,32 @@ class Action:
 
 TERMINAL_STATES = {
     "closed",
+    "dead",
     "error",
     "f1_failed",
     "f2_failed",
     "f2_blocked",
-    "liveness_pending",
 }
 
 
 def _single_agent(agent_id: str) -> AgentHandler:
     return lambda role: run_agent(agent_id, role)
+
+
+def _liveness_handler(role: dict) -> AgentResult:
+    """Run the Playwright liveness check and return a dynamic-state AgentResult.
+
+    Updates ``role["liveness"]`` in-place so the runner's subsequent
+    ``write_role`` persists the result.  Returns ``next_state="f1_pending"``
+    when the posting is live and ``next_state="dead"`` when it is not.
+    """
+    result = check_liveness(role)
+    liveness = role.setdefault("liveness", {})
+    liveness["status"] = "alive" if result["status"] == "live" else "dead"
+    liveness["last_checked"] = result["checked_at"]
+    liveness["last_check_method"] = "playwright"
+    next_state = "f1_pending" if result["status"] == "live" else "dead"
+    return AgentResult(success=True, reason=result["reason"], next_state=next_state)
 
 
 def _agent_bundle(agent_ids: tuple[str, ...]) -> AgentHandler:
@@ -56,6 +73,14 @@ TRANSITIONS: dict[str, Action] = {
         next_state="liveness_pending",
         reason="liveness_check_stubbed_pending_a1_4",
         handler=_single_agent("A1.4"),
+    ),
+    "liveness_pending": Action(
+        agent_ids=("A1.4",),
+        # Default next_state for the live path; the dead path is returned via
+        # AgentResult.next_state so the runner picks it up dynamically.
+        next_state="f1_pending",
+        reason="liveness_check_complete",
+        handler=_liveness_handler,
     ),
     "f1_pending": Action(
         agent_ids=("F1",),

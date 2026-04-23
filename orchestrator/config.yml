@@ -1,3 +1,8 @@
 tick_seconds: 300
 daily_report_time: "07:00"
 
+# Liveness check timeouts (A1.4 / orchestrator/liveness.py)
+liveness:
+  nav_timeout_ms: 15000      # Playwright page.goto() timeout in milliseconds
+  selector_timeout_ms: 5000  # Selector wait budget in milliseconds
+

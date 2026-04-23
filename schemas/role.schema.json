@@ -114,6 +114,7 @@
       "enum": [
         "sourced",
         "liveness_pending",
+        "dead",
         "f1_pending",
         "f1_passed",
         "f1_failed",
