@@ -1,0 +1,632 @@
+"""Tests for orchestrator/f2.py — F2 deep rubric evaluation filter.
+
+All tests use fixture role + company dicts.  No external services are called.
+The LLM call is mocked via ``unittest.mock.patch`` on ``f2._call_llm``.
+The file-system store is exercised through a tmp-path root so every test is
+isolated and repeatable.
+"""
+
+from __future__ import annotations
+
+import json
+import shutil
+from pathlib import Path
+from unittest.mock import patch
+
+import pytest
+
+from orchestrator import f2, store
+from orchestrator.f2 import BLOCKED, FAIL, PASS, run_f2
+from tests.helpers import configure_store_root, make_role
+
+# ── Constants ────────────────────────────────────────────────────────────────
+
+RUBRIC_VERSION = "0.2"
+
+
+# ── Shared fixtures ──────────────────────────────────────────────────────────
+
+
+@pytest.fixture()
+def jobpilot_root(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    """Isolated store root with schemas + rubric."""
+    root = configure_store_root(tmp_path, monkeypatch)
+    repo_root = Path(__file__).resolve().parents[1]
+    shutil.copy(repo_root / "rubric.json", tmp_path / "rubric.json")
+    return root
+
+
+# ── Role / company builders ──────────────────────────────────────────────────
+
+
+def _make_f2_role(
+    role_id: str = "acme-coo-20260421",
+    *,
+    state: str = "researched",
+    company_domain: str = "acme.com",
+) -> dict:
+    """Build a minimal valid role dict with F1 already passed."""
+    role = make_role(role_id, state=state)
+    role["company_domain"] = company_domain
+    role["filter_status"]["f1"]["status"] = "pass"
+    role["filter_status"]["f1"]["checked_at"] = "2026-04-21T10:00:00Z"
+    role["filter_status"]["f1"]["rubric_version"] = RUBRIC_VERSION
+    return role
+
+
+def _make_company(domain: str = "acme.com") -> dict:
+    """Minimal company profile valid for write_company + run_f2."""
+    return {
+        "instance_meta": {
+            "generated": "2026-04-21T10:00:00Z",
+            "target_role": "COO",
+            "role_url": f"https://{domain}/jobs/coo",
+            "research_depth": "medium",
+            "researcher": "A0",
+            "confidence_notes": "Research complete. No confusable lookalikes found.",
+        },
+        "snapshot": {
+            "legal_name": "Acme Corp",
+            "domain": domain,
+            "primary_market": "USA",
+            "sector": "B2B SaaS",
+            "headcount_estimate": "80 (2026)",
+            "revenue_claim": "$8M ARR (self-reported, 2025)",
+            "founded": 2018,
+            "hq": "Warsaw, Poland",
+            "funding_stage": "Series A",
+            "profitability_claim": "Not profitable (self-reported)",
+        },
+        "gate_needs_judgment_call": {
+            "blocked": False,
+            "items": [],
+        },
+    }
+
+
+def _write_role_a1(role: dict) -> None:
+    store.write_role(role["role_id"], role, writer_id="A1")
+
+
+def _decisions(root: Path) -> list[dict]:
+    path = root / "decisions.log"
+    if not path.exists():
+        return []
+    return [
+        json.loads(line)
+        for line in path.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+
+
+def _llm_fixture(
+    result: str,
+    stance: str,
+    reason: str = "",
+    judgment_calls: list[dict] | None = None,
+) -> str:
+    """Build a JSON string mimicking a valid LLM response."""
+    return json.dumps(
+        {
+            "result": result,
+            "stance": stance,
+            "reason": reason or f"Fixture: {result}/{stance}",
+            "gate_needs_judgment_call": judgment_calls or [],
+        }
+    )
+
+
+# ── Pass: strong company profile ─────────────────────────────────────────────
+
+
+def test_pass_strong_profile(jobpilot_root: Path) -> None:
+    """All criteria score well → pass / go."""
+    role = _make_f2_role()
+    _write_role_a1(role)
+    company = _make_company()
+
+    llm_resp = _llm_fixture(
+        PASS,
+        "go",
+        reason=(
+            "Manager quality strong (admits constraints unprompted, hires for trajectory). "
+            "Build mandate tier 1 (named, articulated need). "
+            "AI mandate present. Growth stage fits floors."
+        ),
+    )
+
+    with patch.object(f2, "_call_llm", return_value=llm_resp):
+        result = run_f2(role, company)
+
+    f2s = result["filter_status"]["f2"]
+    assert f2s["status"] == PASS
+    assert f2s["stance"] == "go"
+    assert f2s["checked_at"] is not None
+    assert f2s["rubric_version"] == RUBRIC_VERSION
+    # gate_needs_judgment_call lives at top level of role (not inside filter_status.f2)
+    assert result.get("gate_needs_judgment_call") is None
+
+
+# ── Fail: hard gate — manager quality weak ───────────────────────────────────
+
+
+def test_fail_manager_quality_weak(jobpilot_root: Path) -> None:
+    """Weak manager → fail / stop (manager_quality_gates_everything)."""
+    role = _make_f2_role()
+    _write_role_a1(role)
+    company = _make_company()
+
+    llm_resp = _llm_fixture(
+        FAIL,
+        "stop",
+        reason=(
+            "Manager quality weak — override_rules.manager_quality_gates_everything triggered. "
+            "CEO stayed in pitch mode; no problems named; behavioral-framework questions only."
+        ),
+    )
+
+    with patch.object(f2, "_call_llm", return_value=llm_resp):
+        result = run_f2(role, company)
+
+    f2s = result["filter_status"]["f2"]
+    assert f2s["status"] == FAIL
+    assert f2s["stance"] == "stop"
+    assert "manager" in f2s["reason"].lower()
+    assert result.get("gate_needs_judgment_call") is None
+
+
+def test_fail_hard_gate_domain_missed_by_f1(jobpilot_root: Path) -> None:
+    """Domain exclusion confirmed in company profile at F2 → fail / stop."""
+    role = _make_f2_role(role_id="casino-coo-20260421", company_domain="casino-ops.com")
+    _write_role_a1(role)
+    company = _make_company(domain="casino-ops.com")
+
+    llm_resp = _llm_fixture(
+        FAIL,
+        "stop",
+        reason=(
+            "excluded_domain_gambling: company profile confirms core business is "
+            "online casino operations. Hard gate fires."
+        ),
+    )
+
+    with patch.object(f2, "_call_llm", return_value=llm_resp):
+        result = run_f2(role, company)
+
+    f2s = result["filter_status"]["f2"]
+    assert f2s["status"] == FAIL
+    assert f2s["stance"] == "stop"
+
+
+def test_fail_build_mandate_tier_3(jobpilot_root: Path) -> None:
+    """Build mandate tier 3 (no felt need) → fail / stop."""
+    role = _make_f2_role()
+    _write_role_a1(role)
+    company = _make_company()
+
+    llm_resp = _llm_fixture(
+        FAIL,
+        "stop",
+        reason=(
+            "Build mandate tier 3: JD uses 'greenfield opportunity' language "
+            "with no underlying business pain named. Manager quality not exceptional. "
+            "Recommend skip."
+        ),
+    )
+
+    with patch.object(f2, "_call_llm", return_value=llm_resp):
+        result = run_f2(role, company)
+
+    f2s = result["filter_status"]["f2"]
+    assert f2s["status"] == FAIL
+    assert f2s["stance"] == "stop"
+
+
+# ── Blocked: gate_needs_judgment_call unresolvable ───────────────────────────
+
+
+def test_blocked_single_judgment_call(jobpilot_root: Path) -> None:
+    """Unresolvable war_related gate → blocked with judgment call populated."""
+    role = _make_f2_role()
+    _write_role_a1(role)
+    company = _make_company()
+
+    judgment_items = [
+        {
+            "gate_id": "war_related",
+            "reason": (
+                "Company supplies dual-use data services to government clients; "
+                "end customer cannot be determined from public research."
+            ),
+            "recommended_probes": [
+                "Who are your top 3 government customers and what do they use the product for?",
+                "Is any revenue derived from defense or intelligence contracts?",
+            ],
+        }
+    ]
+    llm_resp = _llm_fixture(
+        BLOCKED,
+        "blocked",
+        reason="1 gate(s) require human judgment before proceeding.",
+        judgment_calls=judgment_items,
+    )
+
+    with patch.object(f2, "_call_llm", return_value=llm_resp):
+        result = run_f2(role, company)
+
+    f2s = result["filter_status"]["f2"]
+    assert f2s["status"] == BLOCKED
+    assert f2s["stance"] == "blocked"
+    # gate_needs_judgment_call is at top level of role (hard rule 7)
+    jc = result["gate_needs_judgment_call"]
+    assert len(jc) == 1
+    assert jc[0]["gate_id"] == "war_related"
+    assert len(jc[0]["recommended_probes"]) >= 1
+
+
+def test_blocked_multiple_judgment_calls(jobpilot_root: Path) -> None:
+    """Multiple unresolved gates → all items present in gate_needs_judgment_call."""
+    role = _make_f2_role()
+    _write_role_a1(role)
+    company = _make_company()
+
+    judgment_items = [
+        {
+            "gate_id": "war_related",
+            "reason": "Dual-use product; end-customer unknown.",
+            "recommended_probes": ["Who are your defense customers?"],
+        },
+        {
+            "gate_id": "russian_or_belarusian_market_or_business",
+            "reason": "RU-origin CTO; war_position not yet researched.",
+            "recommended_probes": [
+                "What is the CTO's public position on the Ukraine conflict?"
+            ],
+        },
+    ]
+    llm_resp = _llm_fixture(
+        BLOCKED,
+        "blocked",
+        reason="2 gate(s) require judgment.",
+        judgment_calls=judgment_items,
+    )
+
+    with patch.object(f2, "_call_llm", return_value=llm_resp):
+        result = run_f2(role, company)
+
+    jc = result["gate_needs_judgment_call"]
+    assert len(jc) == 2
+    gate_ids = {item["gate_id"] for item in jc}
+    assert "war_related" in gate_ids
+    assert "russian_or_belarusian_market_or_business" in gate_ids
+
+
+def test_blocked_probe_stance_for_ai_mandate(jobpilot_root: Path) -> None:
+    """AI mandate probe (not auto-fail) → blocked with probe stance."""
+    role = _make_f2_role()
+    _write_role_a1(role)
+    company = _make_company()
+
+    judgment_items = [
+        {
+            "gate_id": "ai_mandate",
+            "reason": (
+                "No AI mandate detected; override conditions (exceptional manager + "
+                "real build mandate) not fully confirmed from research alone."
+            ),
+            "recommended_probes": [
+                "Does leadership see AI as a business-process reengineering opportunity?",
+                "Are there any current AI initiatives beyond feature-level adoption?",
+            ],
+        }
+    ]
+    llm_resp = _llm_fixture(
+        BLOCKED,
+        "probe",
+        reason="AI mandate gate needs first-call resolution.",
+        judgment_calls=judgment_items,
+    )
+
+    with patch.object(f2, "_call_llm", return_value=llm_resp):
+        result = run_f2(role, company)
+
+    f2s = result["filter_status"]["f2"]
+    assert f2s["status"] == BLOCKED
+    assert f2s["stance"] == "probe"
+    assert result["gate_needs_judgment_call"][0]["gate_id"] == "ai_mandate"
+
+
+# ── Idempotency ───────────────────────────────────────────────────────────────
+
+
+def test_idempotent_pass(jobpilot_root: Path) -> None:
+    """Role with existing f2 pass → second call is a no-op; LLM called once."""
+    role = _make_f2_role()
+    _write_role_a1(role)
+    company = _make_company()
+
+    with patch.object(f2, "_call_llm", return_value=_llm_fixture(PASS, "go")) as mock_llm:
+        run_f2(role, company)
+        first_checked_at = role["filter_status"]["f2"]["checked_at"]
+
+        run_f2(role, company)  # second call — must be no-op
+        second_checked_at = role["filter_status"]["f2"]["checked_at"]
+
+    assert first_checked_at == second_checked_at
+    assert mock_llm.call_count == 1
+
+
+def test_idempotent_fail(jobpilot_root: Path) -> None:
+    """Role with existing f2 fail → second call is a no-op."""
+    role = _make_f2_role()
+    _write_role_a1(role)
+    company = _make_company()
+
+    with patch.object(f2, "_call_llm", return_value=_llm_fixture(FAIL, "stop")) as mock_llm:
+        run_f2(role, company)
+        first_at = role["filter_status"]["f2"]["checked_at"]
+
+        run_f2(role, company)
+
+    assert role["filter_status"]["f2"]["checked_at"] == first_at
+    assert mock_llm.call_count == 1
+
+
+def test_idempotent_blocked(jobpilot_root: Path) -> None:
+    """Role with existing f2 blocked → second call is a no-op."""
+    role = _make_f2_role()
+    _write_role_a1(role)
+    company = _make_company()
+
+    jc = [{"gate_id": "war_related", "reason": "unclear", "recommended_probes": ["Probe?"]}]
+
+    with patch.object(
+        f2, "_call_llm", return_value=_llm_fixture(BLOCKED, "blocked", judgment_calls=jc)
+    ) as mock_llm:
+        run_f2(role, company)
+        run_f2(role, company)
+
+    assert mock_llm.call_count == 1
+
+
+# ── Rubric version captured ───────────────────────────────────────────────────
+
+
+def test_rubric_version_captured(jobpilot_root: Path) -> None:
+    """filter_status.f2.rubric_version must match rubric._meta.version."""
+    role = _make_f2_role()
+    _write_role_a1(role)
+    company = _make_company()
+
+    with patch.object(f2, "_call_llm", return_value=_llm_fixture(PASS, "go")):
+        result = run_f2(role, company)
+
+    assert result["filter_status"]["f2"]["rubric_version"] == RUBRIC_VERSION
+
+
+def test_rubric_version_on_disk(jobpilot_root: Path) -> None:
+    """Persisted role record also carries the rubric version."""
+    role = _make_f2_role()
+    _write_role_a1(role)
+    company = _make_company()
+
+    with patch.object(f2, "_call_llm", return_value=_llm_fixture(PASS, "go")):
+        run_f2(role, company)
+
+    on_disk = store.read_role(role["role_id"])
+    assert on_disk["filter_status"]["f2"]["rubric_version"] == RUBRIC_VERSION
+
+
+# ── Synthesis version mismatch → blocked ─────────────────────────────────────
+
+
+def test_blocked_synthesis_version_mismatch(jobpilot_root: Path) -> None:
+    """Stale 360_synthesis (wrong rubric version) → blocked without calling LLM."""
+    role = _make_f2_role()
+    _write_role_a1(role)
+
+    company = _make_company()
+    company["360_synthesis"] = {
+        "synthesis_rubric_version": "0.1",  # stale — current is 0.2
+        "stance": "go",
+    }
+
+    with patch.object(f2, "_call_llm", return_value=_llm_fixture(PASS, "go")) as mock_llm:
+        result = run_f2(role, company)
+
+    f2s = result["filter_status"]["f2"]
+    assert f2s["status"] == BLOCKED
+    assert mock_llm.call_count == 0  # LLM must NOT be called on version mismatch
+    jc = result["gate_needs_judgment_call"] or []
+    assert any(item["gate_id"] == "synthesis_version_stale" for item in jc)
+
+
+# ── State transitions logged ──────────────────────────────────────────────────
+
+
+def test_f2_result_logged_to_decisions(jobpilot_root: Path) -> None:
+    """run_f2 appends an f2_result event to decisions.log."""
+    role = _make_f2_role()
+    _write_role_a1(role)
+    company = _make_company()
+
+    with patch.object(f2, "_call_llm", return_value=_llm_fixture(PASS, "go")):
+        run_f2(role, company)
+
+    events = _decisions(jobpilot_root)
+    f2_events = [e for e in events if e.get("event") == "f2_result"]
+    assert len(f2_events) == 1
+    assert f2_events[0]["agent_id"] == "F2"
+    assert f2_events[0]["result"] == PASS
+    assert f2_events[0]["rubric_version"] == RUBRIC_VERSION
+
+
+def test_f2_fail_logged_to_decisions(jobpilot_root: Path) -> None:
+    """Failed F2 also appends f2_result to decisions.log."""
+    role = _make_f2_role()
+    _write_role_a1(role)
+    company = _make_company()
+
+    with patch.object(
+        f2, "_call_llm", return_value=_llm_fixture(FAIL, "stop", reason="weak_manager")
+    ):
+        run_f2(role, company)
+
+    events = _decisions(jobpilot_root)
+    f2_events = [e for e in events if e.get("event") == "f2_result"]
+    assert any(e["result"] == FAIL for e in f2_events)
+
+
+def test_f2_blocked_logs_judgment_call_count(jobpilot_root: Path) -> None:
+    """Blocked F2 logs gate_needs_judgment_call_count to decisions.log."""
+    role = _make_f2_role()
+    _write_role_a1(role)
+    company = _make_company()
+
+    jc = [
+        {"gate_id": "war_related", "reason": "unclear", "recommended_probes": ["Probe?"]},
+        {"gate_id": "ai_mandate", "reason": "unknown", "recommended_probes": ["Probe?"]},
+    ]
+    with patch.object(
+        f2, "_call_llm", return_value=_llm_fixture(BLOCKED, "blocked", judgment_calls=jc)
+    ):
+        run_f2(role, company)
+
+    events = _decisions(jobpilot_root)
+    f2_events = [e for e in events if e.get("event") == "f2_result"]
+    assert f2_events[0]["gate_needs_judgment_call_count"] == 2
+
+
+# ── State machine integration ─────────────────────────────────────────────────
+
+
+def test_state_machine_transitions_f2_pass(jobpilot_root: Path) -> None:
+    """_f2_handler returns next_state='f2_passed' on pass."""
+    from orchestrator.state_machine import _f2_handler
+
+    role = _make_f2_role()
+    _write_role_a1(role)
+    store.write_company(role["company_domain"], _make_company(), writer_id="A0")
+
+    with patch.object(f2, "_call_llm", return_value=_llm_fixture(PASS, "go")):
+        result = _f2_handler(role)
+
+    assert result.success is True
+    assert result.next_state == "f2_passed"
+
+
+def test_state_machine_transitions_f2_fail(jobpilot_root: Path) -> None:
+    """_f2_handler returns next_state='f2_failed' on fail."""
+    from orchestrator.state_machine import _f2_handler
+
+    role = _make_f2_role()
+    _write_role_a1(role)
+    store.write_company(role["company_domain"], _make_company(), writer_id="A0")
+
+    with patch.object(f2, "_call_llm", return_value=_llm_fixture(FAIL, "stop")):
+        result = _f2_handler(role)
+
+    assert result.success is True
+    assert result.next_state == "f2_failed"
+
+
+def test_state_machine_transitions_f2_blocked(jobpilot_root: Path) -> None:
+    """_f2_handler returns next_state='f2_blocked' on blocked."""
+    from orchestrator.state_machine import _f2_handler
+
+    role = _make_f2_role()
+    _write_role_a1(role)
+    store.write_company(role["company_domain"], _make_company(), writer_id="A0")
+
+    jc = [{"gate_id": "war_related", "reason": "unclear", "recommended_probes": ["Probe?"]}]
+    with patch.object(
+        f2, "_call_llm", return_value=_llm_fixture(BLOCKED, "blocked", judgment_calls=jc)
+    ):
+        result = _f2_handler(role)
+
+    assert result.success is True
+    assert result.next_state == "f2_blocked"
+
+
+def test_state_machine_f2_blocked_includes_jc_count_in_reason(jobpilot_root: Path) -> None:
+    """_f2_handler appends judgment_call count to reason when blocked."""
+    from orchestrator.state_machine import _f2_handler
+
+    role = _make_f2_role()
+    _write_role_a1(role)
+    store.write_company(role["company_domain"], _make_company(), writer_id="A0")
+
+    jc = [
+        {"gate_id": "war_related", "reason": "unclear", "recommended_probes": []},
+        {"gate_id": "ai_mandate", "reason": "unknown", "recommended_probes": []},
+    ]
+    with patch.object(
+        f2, "_call_llm", return_value=_llm_fixture(BLOCKED, "blocked", judgment_calls=jc)
+    ):
+        result = _f2_handler(role)
+
+    assert "2" in result.reason  # judgment count surfaced in reason
+
+
+# ── Lane enforcement ──────────────────────────────────────────────────────────
+
+
+def test_f2_lane_violation_on_non_f2_field(jobpilot_root: Path) -> None:
+    """Direct store write outside filter_status.f2.* by F2 raises LaneViolationError."""
+    from orchestrator.lanes import LaneViolationError
+
+    role = _make_f2_role()
+    _write_role_a1(role)
+
+    on_disk = store.read_role(role["role_id"])
+    on_disk["debrief_ref"] = "should_not_be_set_by_f2"
+
+    with pytest.raises(LaneViolationError):
+        store.write_role(role["role_id"], on_disk, writer_id="F2")
+
+
+def test_f2_writes_persist_to_disk(jobpilot_root: Path) -> None:
+    """After run_f2, persisted role record reflects the F2 result."""
+    role = _make_f2_role()
+    _write_role_a1(role)
+    company = _make_company()
+
+    with patch.object(f2, "_call_llm", return_value=_llm_fixture(PASS, "go")):
+        run_f2(role, company)
+
+    on_disk = store.read_role(role["role_id"])
+    f2s = on_disk["filter_status"]["f2"]
+    assert f2s["status"] == PASS
+    assert f2s["stance"] == "go"
+    assert f2s["checked_at"] is not None
+
+
+# ── Malformed LLM response ────────────────────────────────────────────────────
+
+
+def test_malformed_llm_response_falls_back_to_fail(jobpilot_root: Path) -> None:
+    """Unparseable LLM response → safe FAIL/stop fallback, not an exception."""
+    role = _make_f2_role()
+    _write_role_a1(role)
+    company = _make_company()
+
+    with patch.object(f2, "_call_llm", return_value="not valid json {{{"):
+        result = run_f2(role, company)
+
+    f2s = result["filter_status"]["f2"]
+    assert f2s["status"] == FAIL
+    assert f2s["stance"] == "stop"
+    assert "parse_error" in f2s["reason"].lower() or "json" in f2s["reason"].lower()
+
+
+def test_invalid_result_enum_falls_back_to_fail(jobpilot_root: Path) -> None:
+    """LLM returns unrecognised result value → safe FAIL fallback."""
+    role = _make_f2_role()
+    _write_role_a1(role)
+    company = _make_company()
+
+    bad_resp = json.dumps({"result": "maybe", "stance": "go", "reason": "x", "gate_needs_judgment_call": []})
+    with patch.object(f2, "_call_llm", return_value=bad_resp):
+        result = run_f2(role, company)
+
+    assert result["filter_status"]["f2"]["status"] == FAIL

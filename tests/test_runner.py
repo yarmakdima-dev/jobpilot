@@ -56,9 +56,19 @@ def test_tick_processes_mixed_state_roles(jobpilot_root: Path) -> None:
 
 
 def test_restart_mid_pipeline_advances_from_persisted_state(jobpilot_root: Path) -> None:
+    """f1_passed → researching (tick 1) → researched (tick 2) → f2_passed (tick 3)."""
+    import shutil
+    from pathlib import Path as _Path
+
+    repo_root = _Path(__file__).resolve().parents[1]
+    shutil.copy(repo_root / "rubric.json", jobpilot_root / "rubric.json")
+
     role = make_role("delta-coo-20260421", "f1_passed")
     _write_role(role)
     store.write_pipeline([make_pipeline_row(role)], writer_id="system")
+
+    runner.run_tick()
+    assert store.read_role("delta-coo-20260421")["pipeline_state"] == "researching"
 
     runner.run_tick()
     assert store.read_role("delta-coo-20260421")["pipeline_state"] == "researched"
