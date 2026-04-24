@@ -131,25 +131,25 @@ Each transition logged. Failures halt that role but don't break the pipeline.
 Don't build all eleven at once. Build the spine; each stage is usable on its own.
 
 ### Phase 0 — Pre-flight
-- [ ] **P0.1.** Write `DATA_CONTRACT.md` — canonical list of User vs System files, write-lane table per agent, the rule
-- [ ] **P0.2.** Onboarding contract — orchestrator checks before any agent runs:
+- [x] **P0.1.** Write `DATA_CONTRACT.md` — canonical list of User vs System files, write-lane table per agent, the rule
+- [x] **P0.2.** Onboarding contract — orchestrator checks before any agent runs:
   - `cv.md` exists?
   - `config/profile.yml` exists?
   - `rubric.json` exists and version is known?
   - `voice_pack.md` exists? (warn-only until Layer 2 ships)
   If any required file is missing, enter onboarding mode and walk user through setup. No agent runs until pre-flight passes.
-- [ ] **P0.3.** `CLAUDE.md` / orchestrator prompt — bakes HIL enforcement, quality-over-quantity rule, and never-auto-submit into the agent's operating instructions (not just architecture). Principles are hard-coded, not advisory.
+- [x] **P0.3.** `CLAUDE.md` / orchestrator prompt — bakes HIL enforcement, quality-over-quantity rule, and never-auto-submit into the agent's operating instructions (not just architecture). Principles are hard-coded, not advisory.
 
 ### Phase 1 — Foundation
-- [ ] **S1.** State store schemas (flat files, minimal)
-- [ ] **S2.** Pipeline runner (state machine, cron-based)
-- [ ] **S3.** Daily report template + generator
+- [x] **S1.** State store schemas (flat files, minimal)
+- [x] **S2.** Pipeline runner (state machine, cron-based)
+- [x] **S3.** Daily report template + generator
 
 ### Phase 2 — Intake
 - [ ] **A1.1.** Job sourcing — source list (LinkedIn, job boards, company pages, aggregators)
 - [ ] **A1.2.** Job sourcing — dedup logic (same role posted multiple places)
 - [ ] **A1.3.** Job sourcing — schedule + ingestion
-- [ ] **A1.4.** Liveness check — verify posting is still open before F1 spends budget. Use Playwright (navigate + snapshot), not WebSearch (unreliable for dead postings). Dead = footer/navbar only, no JD body. Active = title + description + apply button. Lightweight; runs between A1 and F1.
+- [x] **A1.4.** Liveness check — verify posting is still open before F1 spends budget. Use Playwright (navigate + snapshot), not WebSearch (unreliable for dead postings). Dead = footer/navbar only, no JD body. Active = title + description + apply button. Lightweight; runs between A1 and F1.
 - [ ] **F1.1.** JD pre-screen — hard gate checks (location, comp if stated, domain exclusions, seniority)
 - [ ] **F1.2.** F1 config file (tunable thresholds without code changes)
 - [ ] **F1.3.** F1 near-miss bucket (logged separately in daily report)
@@ -164,10 +164,10 @@ Don't build all eleven at once. Build the spine; each stage is usable on its own
 - [ ] **F2.4.** `360_synthesis` generation + `synthesis_rubric_version` tagging
 
 ### Phase 4 — Application production
-- [ ] **A2.1.** CV tailoring — consume profile slices, not full profile
-- [ ] **A2.2.** CV tailoring — output format
-- [ ] **A3.1.** Cover letter — voice constraints (reflective, direct, specific; no "passionate about," no bullets)
-- [ ] **A3.2.** Cover letter — profile-slice-driven content
+- [x] **A2.1.** CV tailoring — consume profile slices, not full profile
+- [x] **A2.2.** CV tailoring — output format
+- [x] **A3.1.** Cover letter — voice constraints (reflective, direct, specific; no "passionate about," no bullets)
+- [x] **A3.2.** Cover letter — profile-slice-driven content
 
 ### Phase 5 — Submission
 - [ ] **A4.1.** Submission mode classifier (auto / assisted / manual) per channel
@@ -176,15 +176,15 @@ Don't build all eleven at once. Build the spine; each stage is usable on its own
 - [ ] **A4.4.** Manual submission queue + daily nudge
 
 ### Phase 6 — Feedback loop
-- [ ] **A8.1.** Inbox watcher — Gmail/Outlook access
-- [ ] **A8.2.** Inbox watcher — classification (reply to application, cold outreach, rejection, scheduling, follow-up needed)
-- [ ] **A8.3.** Inbox watcher — draft replies (never auto-send)
-- [ ] **A8.4.** Inbox watcher — pipeline state updates from email events
-- [ ] **A5.1.** Interview prep — profile slice selection per stage
-- [ ] **A5.2.** Interview prep — probe list from `gate_needs_judgment_call`
-- [ ] **A5.3.** Story bank — accumulating artifact across interviews and evaluations. Format: 5–10 master stories (situation, task, action, result, reflection) that answer any behavioral question. Grows over time; A5 pulls from it, A6 feeds into it. Lives in User Layer (`voice_pack.md` companion or standalone `story_bank.md`).
-- [ ] **A6.1.** Debrief capture — post-interview prompts
-- [ ] **A6.2.** Debrief capture — profile + rubric feedback loop
+- [x] **A8.1.** Inbox watcher — Gmail/Outlook access
+- [x] **A8.2.** Inbox watcher — classification (reply to application, cold outreach, rejection, scheduling, follow-up needed)
+- [x] **A8.3.** Inbox watcher — draft replies (never auto-send)
+- [x] **A8.4.** Inbox watcher — pipeline state updates from email events
+- [x] **A5.1.** Interview prep — profile slice selection per stage
+- [x] **A5.2.** Interview prep — probe list from `gate_needs_judgment_call`
+- [x] **A5.3.** Story bank — accumulating artifact across interviews and evaluations. Format: 5–10 master stories (situation, task, action, result, reflection) that answer any behavioral question. Grows over time; A5 pulls from it, A6 feeds into it. Lives in User Layer (`voice_pack.md` companion or standalone `story_bank.md`).
+- [x] **A6.1.** Debrief capture — post-interview prompts
+- [x] **A6.2.** Debrief capture — profile + rubric feedback loop
 
 ### Phase 7 — Maintenance
 - [ ] **A7.1.** Rubric version bump → invalidate `360_synthesis` caches
