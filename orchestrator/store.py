@@ -124,7 +124,11 @@ def _validate_role_scope(
     if writer_id == "F1":
         _require_changed_paths_within(existing or {}, new_data, ("filter_status.f1",))
     elif writer_id == "F2":
-        _require_changed_paths_within(existing or {}, new_data, ("filter_status.f2",))
+        # F2 writes filter_status.f2.* (result, stance, reason, rubric_version, ...)
+        # and gate_needs_judgment_call at the role top level (hard rule 7 field).
+        _require_changed_paths_within(
+            existing or {}, new_data, ("filter_status.f2", "gate_needs_judgment_call")
+        )
     elif writer_id == "A6":
         _require_changed_paths_within(existing or {}, new_data, ("debrief_ref",))
 

@@ -104,7 +104,8 @@
             },
             "checked_at": {"type": ["string", "null"], "format": "date-time"},
             "rubric_version": {"type": ["string", "null"]},
-            "synthesis_ref": {"type": ["string", "null"]}
+            "synthesis_ref": {"type": ["string", "null"]},
+            "reason": {"type": ["string", "null"]}
           }
         }
       }
@@ -119,7 +120,9 @@
         "f1_passed",
         "f1_failed",
         "f1_near_miss",
+        "researching",
         "researched",
+        "research_failed",
         "f2_passed",
         "f2_failed",
         "f2_blocked",
@@ -146,7 +149,24 @@
         }
       }
     },
-    "debrief_ref": {"type": ["string", "null"]}
+    "debrief_ref": {"type": ["string", "null"]},
+    "gate_needs_judgment_call": {
+      "type": ["array", "null"],
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": ["gate_id", "reason", "recommended_probes"],
+        "properties": {
+          "gate_id": {"type": "string"},
+          "reason": {"type": "string"},
+          "signals_pro": {"type": "array", "items": {"type": "string"}},
+          "signals_con": {"type": "array", "items": {"type": "string"}},
+          "recommended_probes": {
+            "type": "array",
+            "items": {"type": "string"}
+          }
+        }
+      }
+    }
   }
 }
-

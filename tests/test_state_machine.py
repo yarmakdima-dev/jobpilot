@@ -4,8 +4,25 @@ from orchestrator.state_machine import next_action
 
 
 def test_next_action_returns_none_for_terminal_states() -> None:
-    for state in ["closed", "error", "f1_failed", "f2_failed", "f2_blocked"]:
+    terminal = ["closed", "error", "f1_failed", "f2_failed", "f2_blocked", "research_failed"]
+    for state in terminal:
         assert next_action({"pipeline_state": state}) is None
+
+
+def test_f1_passed_transitions_to_researching() -> None:
+    action = next_action({"pipeline_state": "f1_passed"})
+
+    assert action is not None
+    assert action.agent_ids == ("A0",)
+    assert action.next_state == "researching"
+
+
+def test_researching_transitions_to_researched_by_default() -> None:
+    action = next_action({"pipeline_state": "researching"})
+
+    assert action is not None
+    assert action.agent_ids == ("A0",)
+    assert action.next_state == "researched"
 
 
 def test_sourced_waits_for_liveness_after_stub() -> None:
