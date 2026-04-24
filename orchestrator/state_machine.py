@@ -53,6 +53,31 @@ def _liveness_handler(role: dict) -> AgentResult:
     return AgentResult(success=True, reason=result["reason"], next_state=next_state)
 
 
+def _f1_handler(role: dict) -> AgentResult:
+    """Run the F1 pre-screen filter and return a dynamic-state AgentResult.
+
+    Calls ``run_f1`` which updates ``role["filter_status"]["f1"]`` in-place
+    and persists the F1 fields.  The runner subsequently transitions
+    pipeline_state and appends state_history.
+
+    Possible next states:
+        f1_passed   — all gates passed
+        f1_failed   — a hard gate fired (terminal)
+        f1_near_miss — ambiguous gate (hold; surfaces in daily report)
+    """
+    from orchestrator.f1 import run_f1  # lazy import avoids circular dependency
+
+    run_f1(role)  # modifies role in-place
+    f1 = (role.get("filter_status") or {}).get("f1") or {}
+    status = f1.get("status", "fail")
+    failed_gates = f1.get("failed_gates") or []
+    reason = failed_gates[0] if failed_gates else "all_gates_passed"
+
+    _STATE_MAP = {"pass": "f1_passed", "fail": "f1_failed", "near_miss": "f1_near_miss"}
+    next_state = _STATE_MAP.get(status, "f1_failed")
+    return AgentResult(success=True, reason=reason, next_state=next_state)
+
+
 def _agent_bundle(agent_ids: tuple[str, ...]) -> AgentHandler:
     def run_bundle(role: dict):
         result = None
@@ -84,9 +109,11 @@ TRANSITIONS: dict[str, Action] = {
     ),
     "f1_pending": Action(
         agent_ids=("F1",),
+        # Default next_state for logging; actual target is returned by the
+        # handler dynamically (pass / fail / near_miss).
         next_state="f1_passed",
-        reason="stub_f1_pass",
-        handler=_single_agent("F1"),
+        reason="f1_filter_complete",
+        handler=_f1_handler,
     ),
     "f1_passed": Action(
         agent_ids=("A0",),

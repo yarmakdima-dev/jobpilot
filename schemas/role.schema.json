@@ -118,6 +118,7 @@
         "f1_pending",
         "f1_passed",
         "f1_failed",
+        "f1_near_miss",
         "researched",
         "f2_passed",
         "f2_failed",
