@@ -5,7 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 from dataclasses import dataclass
-from datetime import UTC, date, datetime, time, timedelta
+from datetime import date, datetime, time, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
@@ -74,7 +74,7 @@ def build_report_context(report_date: date) -> dict[str, Any]:
     role_by_id = {role["role_id"]: role for role in roles}
     pipeline = store.read_pipeline()
     decisions = _read_decisions()
-    now = datetime.combine(report_date, time.max, tzinfo=UTC)
+    now = datetime.combine(report_date, time.max, tzinfo=timezone.utc)
     seven_days_ago = now - timedelta(days=7)
     day_ago = now - timedelta(days=1)
 
@@ -296,8 +296,8 @@ def _parse_datetime(value: str | None) -> datetime | None:
     normalized = value.replace("Z", "+00:00")
     parsed = datetime.fromisoformat(normalized)
     if parsed.tzinfo is None:
-        return parsed.replace(tzinfo=UTC)
-    return parsed.astimezone(UTC)
+        return parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
 
 
 def _display_datetime(value: datetime) -> str:

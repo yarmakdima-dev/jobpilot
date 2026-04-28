@@ -38,8 +38,12 @@ Role write scope is narrower than path access for these actors:
 | --- | --- |
 | `A1` | Create new role files only |
 | `F1` | Update `filter_status.f1` only |
-| `F2` | Update `filter_status.f2` only |
+| `F2` | Update `filter_status.f2` and top-level `gate_needs_judgment_call` only |
 | `A6` | Update `debrief_ref` only |
+
+The `system` writer is reserved for orchestrator-owned state movement: role
+`pipeline_state`, role `state_history`, `pipeline.json`, and audit entries in
+`decisions.log`. Agents should not use it directly.
 
 ### Companies
 
@@ -72,4 +76,3 @@ Lane checks live in `orchestrator.lanes`. A disallowed write raises
 Writes use a per-file `.lock` file and an exclusive `fcntl` lock. JSON writes are
 atomic: data is written to a temporary file in the same directory, flushed, and
 then moved into place with `os.replace`.
-

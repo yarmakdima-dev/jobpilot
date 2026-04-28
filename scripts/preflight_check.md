@@ -1,7 +1,7 @@
 # Spec: `scripts/preflight_check.py`
 
 **Version:** 0.1
-**Status:** Spec — implement from this file
+**Status:** Implemented in `scripts/preflight_check.py`
 **Implements:** CLAUDE.md § 3 (Pre-Flight Check) and backlog.md P0.2
 
 ---

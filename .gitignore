@@ -58,3 +58,7 @@ dist/
 build/
 *.log
 .cache/
+
+# ---- Dispatch/Cowork local handoff scratch ----
+commit_*.sh
+pr_*.txt

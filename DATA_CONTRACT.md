@@ -1,6 +1,6 @@
 # DATA_CONTRACT.md
 
-**Version:** 0.2 | **Status:** Canonical | **Last updated:** 2026-04-22
+**Version:** 0.6 | **Status:** Canonical | **Last updated:** 2026-04-28
 
 ---
 
@@ -63,8 +63,8 @@ One row per agent. The "forbidden from" column is explicit: if a path is not lis
 |-------|-----------|---------------------|----------------|
 | **A0** Company research | `companies/*.json` (create, update) | `company_profile_schema.json`, `rubric.json`, `config/profile.yml`, `roles/*.json` (role URL/context) | `cv.md`, `voice_pack.md`, `pipeline.json`, `decisions.log`, `inbox_events/*`, `reports/*`, `output/*`, all `agents/`, `filters/`, `scripts/`, `templates/` |
 | **A1** Job sourcing | `roles/*.json` (create new records only; no field updates on existing records) | `config/profile.yml`, `pipeline.json` (dedup read) | `cv.md`, `voice_pack.md`, `companies/*.json`, `decisions.log`, `inbox_events/*`, `reports/*`, `output/*`, all system-layer prompt files |
-| **F1** JD pre-screen | `roles/*.json` (filter_status fields only: `f1_result`, `f1_score`, `f1_reason`, `f1_timestamp`) | `roles/*.json` (full read), `rubric.json`, `config/profile.yml`, `filters/F1.md` | `cv.md`, `voice_pack.md`, `companies/*.json`, `pipeline.json`, `decisions.log`, `inbox_events/*`, `reports/*`, `output/*` |
-| **F2** Deep rubric eval | `roles/*.json` (filter_status fields only: `f2_result`, `f2_score`, `f2_stance`, `f2_timestamp`, `gate_needs_judgment_call`); `companies/*.json` (`360_synthesis` block only) | `roles/*.json` (full read), `companies/*.json` (full read), `rubric.json`, `config/profile.yml`, `filters/F2.md` | `cv.md`, `voice_pack.md`, `pipeline.json`, `decisions.log`, `inbox_events/*`, `reports/*`, `output/*` |
+| **F1** JD pre-screen | `roles/*.json` (`filter_status.f1.*` only) | `roles/*.json` (full read), `rubric.json`, `config/profile.yml`, `filters/F1.md` | `cv.md`, `voice_pack.md`, `companies/*.json`, `pipeline.json`, `decisions.log`, `inbox_events/*`, `reports/*`, `output/*` |
+| **F2** Deep rubric eval | `roles/*.json` (`filter_status.f2.*` and top-level `gate_needs_judgment_call` only); `companies/*.json` (`360_synthesis` block only, to be enabled with the real F2 backend) | `roles/*.json` (full read), `companies/*.json` (full read), `rubric.json`, `config/profile.yml`, `filters/F2.md` | `cv.md`, `voice_pack.md`, `pipeline.json`, `decisions.log`, `inbox_events/*`, `reports/*`, `output/*` |
 | **A2** CV tailoring | `output/*` (create tailored CV packages) | `cv.md`, `voice_pack.md`, `config/profile.yml`, `companies/*.json`, `roles/*.json`, `rubric.json`, `templates/*`, `agents/A2.md`, `agents/_shared.md` | `companies/*.json` (no write), `roles/*.json` (no write), `pipeline.json`, `decisions.log`, `inbox_events/*`, `reports/*` |
 | **A3** Cover letter | `output/*` (create cover letters) | `cv.md`, `voice_pack.md`, `config/profile.yml`, `companies/*.json`, `roles/*.json`, `rubric.json`, `templates/*`, `agents/A3.md`, `agents/_shared.md` | `companies/*.json` (no write), `roles/*.json` (no write), `pipeline.json`, `decisions.log`, `inbox_events/*`, `reports/*` |
 | **A4** Submission | `roles/*.json` (submission-state fields only: `submission_mode`, `submitted_at`, `submission_channel` — **note: these three fields require a role schema version bump before A4 ships**); `inbox_events/*` (assisted-path email draft and manual-path nudge only) | `output/*`, `roles/*.json` (full read), `pipeline.json` (read only — A4 never writes), `config/profile.yml`, `agents/A4.md`, `agents/_shared.md` | `cv.md`, `voice_pack.md`, `companies/*.json`, `pipeline.json` (no write — ever), `decisions.log`, `reports/*` — **A4 never writes pipeline.json. Approval gate: pipeline_state must be `ready_to_submit` (set by orchestrator after human approval) before A4 runs. Auto-submit only on pre-authorized channels in config/profile.yml.** |
@@ -78,16 +78,19 @@ One row per agent. The "forbidden from" column is explicit: if a path is not lis
 
 ## Enforcement
 
-**Pre-commit hook (TBD — Codex to propose):** A hook that statically checks any staged write against the write-lane table above. If a modified path falls outside the writing agent's declared lane, the commit is rejected and the violation is logged.
+**Decision:** runtime validation is the authoritative enforcement mechanism. Pre-commit validation is optional developer hygiene and must never be the only guard protecting User Layer files.
 
-**Runtime check (TBD — Codex to propose):** Before any agent writes a file, the orchestrator confirms the `(agent, path)` pair is permitted by this contract. Violations raise a hard error and halt that agent's run; they do not halt the full pipeline. Violation events are appended to `decisions.log` with type `CONTRACT_VIOLATION`.
+**Runtime check (implemented):** Before any agent write, the orchestrator/store layer confirms the `(agent, path)` pair is permitted by this contract. Implemented code lives in `orchestrator/lanes.py` and `orchestrator/store.py`. Violations raise `LaneViolationError`, halt that agent's write, and append a `lane_violation` entry to `decisions.log`. Role writes also enforce field-level scopes for implemented lanes: A1 creates only; F1 updates `filter_status.f1.*`; F2 updates `filter_status.f2.*` plus top-level `gate_needs_judgment_call`; A6 updates `debrief_ref`.
 
-Both mechanisms are additive. The pre-commit hook catches violations during development; the runtime check catches them in production. Neither replaces the other.
+**Pre-commit hook (future):** A hook may be added later to catch obvious staged-file mistakes during development, but it is advisory relative to runtime enforcement. It should fail closed on attempted commits to ignored User Layer paths and should not write to `decisions.log`, because commit-time checks are outside the running pipeline.
+
+**Rationale:** runtime validation protects the actual production path, including manual smoke tests, scheduled runner ticks, and future API-backed agents. A pre-commit hook only protects Git commits and cannot stop a running agent from writing the wrong file.
 
 ---
 
 ## Changelog
 
+- **v0.6 (2026-04-28):** Resolved enforcement decision. Runtime lane validation is canonical and already implemented in `orchestrator/lanes.py` / `orchestrator/store.py`; pre-commit remains a future developer guard only. Updated F1/F2 lane field names to match the current role schema.
 - **v0.5 (2026-04-23):** Added `reports/*` read access to A7's lane to support debrief scanning (RUBRIC_TUNING_SIGNAL and RE_SYNTHESIS_RECOMMENDED block extraction). Added `reports/rubric_signals_{date}.md` to A7's write lane for periodic clustering reports. Prior v0.4 had A7 forbidden from reports/* — this was incorrect given the A6→A7 signal routing design established in the same session.
 - **v0.4 (2026-04-23):** Resolved A5 write-lane conflict. A5 was designated read-only in v0.1–v0.3; updated to write `reports/*` (create only) after Layer 5 design session. Rationale: prep docs must persist for use during calls and for A6 reference — in-session-only delivery is operationally insufficient. Added `story_bank.md` to User Layer inventory with A6 as append-only writer and A5 as reader. A6's provisional write to story_bank.md is now formally contracted.
 - **v0.3 (2026-04-23):** Resolved A4 + pipeline.json TBD. A4 does not write pipeline.json — ever. Orchestrator owns all pipeline.json state transitions. A4 writes submission metadata to roles/*.json and emits a completion signal; orchestrator acts on the signal. Approval gate resolved: pipeline_state `ready_to_submit` (written by orchestrator after human approval in the approval queue) is the approval signal A4 checks. A4 write lane updated to include inbox_events/* for assisted-path drafts and manual-path nudges. Role schema flagged for version bump to add three submission fields.

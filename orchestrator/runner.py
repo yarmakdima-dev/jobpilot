@@ -7,7 +7,7 @@ import contextlib
 import fcntl
 import logging
 import time
-from datetime import UTC, datetime, time as datetime_time
+from datetime import datetime, time as datetime_time, timezone
 from pathlib import Path
 from typing import Iterator
 
@@ -240,7 +240,7 @@ def _parse_report_time(value: str) -> datetime_time:
 
 
 def _now_iso() -> str:
-    return datetime.now(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 
 if __name__ == "__main__":

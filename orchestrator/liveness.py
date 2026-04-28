@@ -48,7 +48,7 @@ high: a live posting must have both signals.
 from __future__ import annotations
 
 import logging
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from typing import Any
 from urllib.parse import urlparse
 
@@ -192,7 +192,7 @@ def _load_liveness_config() -> dict[str, Any]:
 
 
 def _now_iso() -> str:
-    return datetime.now(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 
 def _infer_existing_reason(existing_status: str) -> str:
