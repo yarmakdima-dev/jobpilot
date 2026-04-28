@@ -51,7 +51,7 @@ The system can ingest a manually-placed role through liveness → F1 stub → A0
 
 ### Stubs to replace, in priority order
 
-1. **A0 (real) ✅ DONE 2026-04-28** — Gemini 2.5 Pro + google_search grounding + responseSchema. Single-pass (no two-step). Shipped on branch `feature/a0-real-backend`, 127 tests pass. Integration test blocked by expired API key — renew key, then run `pytest --run-integration --save-fixtures` to capture live Notion fixture.
+1. **A0 (real) ✅ DONE 2026-04-28** — Gemini 2.5 Pro + google_search grounding + responseSchema. Single-pass (no two-step). Shipped on branch `feature/a0-real-backend`, 130 tests pass + 1 integration skip in default suite. Live integration passed against Notion: 7148 tokens, 19 sources, no fallback. Live fixture saved at `tests/fixtures/a0/gemini_response_notion_live.json`.
 2. **F2 (real)** — LLM scoring against rubric v0.3, override rule application, `360_synthesis` generation with `synthesis_rubric_version` tag, `gate_needs_judgment_call` resolution. **First moment the system produces output Dima can't get manually.** Note: A0 populates all facts including `judgment_call_gates` but does NOT populate `360_synthesis` — that is F2's exclusive lane. F2 ticket needs to account for `_a0_meta` being stripped before profile reaches store.
 3. **F1 (real)** — LLM-based hard-gate check on JD text. Lower priority; stub is good enough for smoke test.
 
@@ -110,4 +110,4 @@ A0 onward is terminal Codex territory. Desktop Codex hit the wall on Python 3.11
 - **2026-04-22** — Cowork briefs scoped: P0.1, P0.3, P0.2, voice pack, agent/filter prompts
 - **2026-04-23** — 19 backlog items closed in one day. Phase 0 + Phase 1 done, A1.4 + A2.1–A2.2 + A3.1–A3.2 + A5.1–A5.3 + A6.1–A6.2 + A8.1–A8.4 prompts shipped. S2 PR #1 + S3 PR #2 ready to merge.
 - **2026-04-28** — Codex repo audit reconciles state. Hygiene batch closed: `.gitignore`, preflight script, doc drift fixes, DATA_CONTRACT enforcement decided. Backlog → v0.3. Tooling split decided: terminal Codex for real backends. Next: A0 ticket.
-- **2026-04-28 (evening)** — A0 real backend shipped. `feature/a0-real-backend` pushed, PR open. 127 unit tests pass. Gemini API key expired (AIzaSyBilz…) — renew at aistudio.google.com before integration run. Next: F2 real backend.
+- **2026-04-28 (evening)** — A0 real backend shipped. `feature/a0-real-backend` pushed, PR open. Live Gemini integration passed after hardening normalization for grounded field drift and splitting live fixtures from synthetic unit fixtures. Next: F2 real backend.
