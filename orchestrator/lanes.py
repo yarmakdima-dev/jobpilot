@@ -13,7 +13,7 @@ WRITE_LANES: dict[str, tuple[str, ...]] = {
     "A0": ("companies/*.json",),
     "A1": ("roles/*.json",),
     "F1": ("roles/*.json",),
-    "F2": ("roles/*.json",),
+    "F2": ("roles/*.json", "companies/*.json"),
     "A2": ("output/*",),
     "A3": ("output/*",),
     "A6": ("reports/*", "roles/*.json"),

@@ -601,6 +601,40 @@ def test_f2_writes_persist_to_disk(jobpilot_root: Path) -> None:
     assert f2s["checked_at"] is not None
 
 
+def test_f2_writes_360_synthesis_to_company(jobpilot_root: Path) -> None:
+    """After run_f2, persisted company record carries a populated 360_synthesis block."""
+    role = _make_f2_role()
+    _write_role_a1(role)
+    company = _make_company()
+    store.write_company(role["company_domain"], company, writer_id="A0")
+
+    with patch.object(f2, "_call_llm", return_value=_llm_fixture(PASS, "go")):
+        run_f2(role, company)
+
+    saved_company = store.read_company(role["company_domain"])
+    synthesis = saved_company["360_synthesis"]
+    assert synthesis["synthesis_agent"] == "F2"
+    assert synthesis["synthesis_rubric_version"] == RUBRIC_VERSION
+    assert synthesis["stance"] == "go"
+    assert isinstance(synthesis["first_call_probes"], list)
+
+
+def test_f2_company_lane_violation_on_non_synthesis_field(jobpilot_root: Path) -> None:
+    """Direct company write outside 360_synthesis by F2 raises LaneViolationError."""
+    from orchestrator.lanes import LaneViolationError
+
+    role = _make_f2_role()
+    _write_role_a1(role)
+    company = _make_company()
+    store.write_company(role["company_domain"], company, writer_id="A0")
+
+    on_disk = store.read_company(role["company_domain"])
+    on_disk["snapshot"]["legal_name"] = "should_not_be_set_by_f2"
+
+    with pytest.raises(LaneViolationError):
+        store.write_company(role["company_domain"], on_disk, writer_id="F2")
+
+
 # ── Malformed LLM response ────────────────────────────────────────────────────
 
 
