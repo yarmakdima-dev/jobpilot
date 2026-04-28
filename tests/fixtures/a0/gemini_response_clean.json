@@ -1,0 +1,165 @@
+{
+  "_fixture_note": "Synthetic happy-path profile for unit tests. Real fixture captured by --save-fixtures during integration test run.",
+  "instance_meta": {
+    "generated": "2026-04-28T10:00:00Z",
+    "target_role": "Chief Operating Officer",
+    "role_url": "https://acmecorp.io/jobs/coo",
+    "research_depth": "medium",
+    "researcher": "A0",
+    "confidence_notes": "Gemini 2.5 Pro + google_search grounding. Revenue figures self-reported."
+  },
+  "name_confusion_check": {
+    "none_found": true,
+    "similar_names_found": []
+  },
+  "snapshot": {
+    "legal_name": "Acme Corp Inc.",
+    "dba": "AcmeCorp",
+    "domain": "acmecorp.io",
+    "secondary_domains": ["acmecorp.com"],
+    "founded": "2019",
+    "hq": "San Francisco, CA, USA",
+    "primary_market": "USA",
+    "sector": "B2B SaaS",
+    "sub_sector": "Operations tooling",
+    "headcount_estimate": "150-300 (2026 estimate)",
+    "funding_stage": "Series B",
+    "profitability_claim": "Not disclosed"
+  },
+  "business_model": {
+    "revenue_model": "SaaS subscription",
+    "pricing": "$500-3,000/month per workspace",
+    "core_services": ["Workflow automation", "Operations dashboards", "Team collaboration"],
+    "structure": "C-Corp, Delaware",
+    "customer_base_size_claim": "2,000+ companies (self-reported, 2025)",
+    "revenue_claim": "$15M ARR (self-reported, 2025)",
+    "customer_satisfaction_signals": "4.6/5 on G2 (as of Q1 2026)"
+  },
+  "strategy_and_direction": {
+    "stated_mission": "Make operations invisible so teams can focus on work that matters",
+    "growth_vector": "Enterprise tier expansion + AI-powered workflow suggestions",
+    "recent_moves": [
+      "2025-Q3: Raised $40M Series B (Andreessen Horowitz lead)",
+      "2025-Q4: Launched enterprise tier with SSO and audit logs",
+      "2026-Q1: Opened Warsaw engineering hub"
+    ],
+    "strategic_bets": ["AI-native workflow automation", "Enterprise compliance features"],
+    "tam_claim": "$30B (self-reported, 2025 investor deck)"
+  },
+  "leadership": {
+    "ceo": {
+      "name": "Sarah Chen",
+      "title": "CEO & Co-founder",
+      "origin": "United States",
+      "current_base": "San Francisco, CA, USA",
+      "background": "Ex-Stripe PM (2016-2019); Stanford CS + MBA; one prior exit (acquired by Shopify, 2017)",
+      "public_voice_signal": "Active on LinkedIn and Twitter/X; pragmatic operator voice; posts on scaling ops teams",
+      "war_position": {
+        "applies": false,
+        "value": null,
+        "evidence": "N/A — non-RU/BY origin",
+        "research_scope": "N/A",
+        "confidence": "high"
+      },
+      "parallel_business_flag": {
+        "present": false,
+        "businesses": []
+      },
+      "concentration_risk_notes": "CEO is primary public voice; co-founder CTO provides technical credibility separately."
+    },
+    "co_founders": [
+      {
+        "name": "David Kim",
+        "title": "CTO & Co-founder",
+        "origin": "United States",
+        "current_base": "San Francisco, CA, USA",
+        "background": "Ex-Google SWE (2014-2019); MIT CS",
+        "public_voice_signal": "Low public presence; occasional technical blog posts",
+        "war_position": {
+          "applies": false,
+          "value": null,
+          "evidence": "N/A — non-RU/BY origin",
+          "research_scope": "N/A",
+          "confidence": "high"
+        },
+        "parallel_business_flag": {
+          "present": false,
+          "businesses": []
+        },
+        "concentration_risk_notes": null
+      }
+    ],
+    "c_suite": [],
+    "board": [],
+    "advisors_referenced_in_role": [],
+    "leadership_pattern_observations": [
+      "Founder-led with CEO and CTO both active",
+      "Hiring COO signals desire to free founders from operational execution",
+      "No public board profiles — typical for Series B"
+    ]
+  },
+  "market_view_outside_in": {
+    "competitive_set": ["Asana", "Monday.com", "Notion", "ClickUp", "Linear"],
+    "market_regulatory_context": "Low regulatory exposure; standard SaaS data privacy compliance (GDPR, SOC 2 Type II in progress per job listings)",
+    "macro_tailwinds": [
+      "AI adoption accelerating ops automation spend",
+      "Distributed team management complexity driving demand",
+      "Enterprise consolidation onto fewer tools"
+    ],
+    "macro_headwinds": [
+      "Market saturation in project management category",
+      "Economic pressure reducing SaaS seat expansion",
+      "Consolidation by Microsoft 365 and Google Workspace"
+    ]
+  },
+  "insider_signal_self_description": {
+    "jd_language_excerpts": [
+      "'Build the operational backbone from scratch'",
+      "'Own the full P&L process from day one'",
+      "'Partner directly with the CEO on company strategy'"
+    ],
+    "ceo_recent_public_voice": [
+      "2026-03: 'We need to systematize everything before our next funding round' (LinkedIn)",
+      "2025-12: 'Operations is the competitive advantage no one talks about' (blog post)"
+    ],
+    "dissonance_flags": []
+  },
+  "hiring_signal": {
+    "role_seniority": "C-suite / VP equivalent",
+    "comp_range": "Not stated in JD",
+    "location_policy": "Hybrid — Warsaw hub or San Francisco HQ",
+    "location_fit_for_user": "Warsaw-compatible confirmed — Warsaw engineering hub mentioned explicitly in role and recent company announcements",
+    "mandate_tier": "1",
+    "hand_off_test_status": "unknown — test in call",
+    "red_flags_in_jd": [],
+    "green_flags_in_jd": [
+      "Greenfield mandate explicitly stated",
+      "Direct CEO report confirmed",
+      "Warsaw location confirmed",
+      "P&L ownership in scope"
+    ]
+  },
+  "risks_and_open_questions": {
+    "regulatory_risk": {
+      "level": "low",
+      "notes": "Standard B2B SaaS; no regulated sector exposure. SOC 2 in progress."
+    },
+    "litigation_risk": {
+      "level": "low",
+      "active_cases": []
+    },
+    "governance_flags": [],
+    "domain_exclusion_check": "PASS — B2B SaaS operations tooling; no gambling, dating, crypto, adult content, tobacco/alcohol, or MLM patterns detected"
+  },
+  "gate_needs_judgment_call": {
+    "blocked": false,
+    "items": []
+  },
+  "source_index": {
+    "S1": "https://acmecorp.io/about",
+    "S2": "https://linkedin.com/company/acmecorp",
+    "S3": "https://techcrunch.com/2025/09/acmecorp-series-b",
+    "S4": "https://acmecorp.io/blog/warsaw-hub",
+    "S5": "https://g2.com/products/acmecorp/reviews"
+  }
+}

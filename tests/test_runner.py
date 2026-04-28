@@ -57,24 +57,39 @@ def test_tick_processes_mixed_state_roles(jobpilot_root: Path) -> None:
 
 def test_restart_mid_pipeline_advances_from_persisted_state(jobpilot_root: Path) -> None:
     """f1_passed → researching (tick 1) → researched (tick 2) → f2_passed (tick 3)."""
+    import json
     import shutil
     from pathlib import Path as _Path
+    from unittest.mock import patch
+
+    from agents.a0.gemini_client import GeminiResponse
 
     repo_root = _Path(__file__).resolve().parents[1]
     shutil.copy(repo_root / "rubric.json", jobpilot_root / "rubric.json")
+
+    fixtures_dir = _Path(__file__).parent / "fixtures" / "a0"
+    with (fixtures_dir / "gemini_response_clean.json").open(encoding="utf-8") as fh:
+        clean_profile = json.load(fh)
+
+    mock_response = GeminiResponse(
+        content=clean_profile,
+        sources=["https://s1.example.com", "https://s2.example.com", "https://s3.example.com"],
+        usage={"total_tokens": 1200},
+    )
 
     role = make_role("delta-coo-20260421", "f1_passed")
     _write_role(role)
     store.write_pipeline([make_pipeline_row(role)], writer_id="system")
 
-    runner.run_tick()
-    assert store.read_role("delta-coo-20260421")["pipeline_state"] == "researching"
+    with patch("agents.a0.research.call_research", return_value=mock_response):
+        runner.run_tick()
+        assert store.read_role("delta-coo-20260421")["pipeline_state"] == "researching"
 
-    runner.run_tick()
-    assert store.read_role("delta-coo-20260421")["pipeline_state"] == "researched"
+        runner.run_tick()
+        assert store.read_role("delta-coo-20260421")["pipeline_state"] == "researched"
 
-    runner.run_tick()
-    assert store.read_role("delta-coo-20260421")["pipeline_state"] == "f2_passed"
+        runner.run_tick()
+        assert store.read_role("delta-coo-20260421")["pipeline_state"] == "f2_passed"
 
 
 def test_role_failure_marks_error_and_continues(
