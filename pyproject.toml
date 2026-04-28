@@ -9,6 +9,7 @@ dependencies = [
   "jinja2>=3.1.0,<4",
   "jsonschema>=4.23.0,<5",
   "playwright>=1.44.0",
+  "python-multipart>=0.0.9,<1",
   "pyyaml>=6.0.2,<7",
   "uvicorn>=0.30.0,<1",
 ]

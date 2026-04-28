@@ -23,7 +23,7 @@ def test_dashboard_renders_pipeline_table(tmp_path: Path, monkeypatch) -> None:
     response = client.get("/")
 
     assert response.status_code == 200
-    assert "JobPilot Console" in response.text
+    assert "JobPilot Workbench" in response.text
     assert "acme-coo-20260428" in response.text
 
 
@@ -82,3 +82,67 @@ def test_role_detail_renders_synthesis_and_decisions(tmp_path: Path, monkeypatch
     assert "Probe location" in response.text
     assert "relocation_required" in response.text
     assert "f2_result" in response.text
+
+
+def test_intake_creates_role_and_pipeline_row(tmp_path: Path, monkeypatch) -> None:
+    configure_store_root(tmp_path, monkeypatch)
+    client = TestClient(app)
+
+    response = client.post(
+        "/intake",
+        data={
+            "company_domain": "notion.so",
+            "source_url": "https://www.notion.so/careers/chief-of-staff",
+            "title": "Chief of Staff",
+            "body": "Lead operating cadence across the company.",
+            "location_stated": "Remote",
+            "comp_stated": "",
+            "platform": "company_site",
+            "initial_state": "sourced",
+        },
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 303
+    location = response.headers["location"]
+    role_id = location.rsplit("/", 1)[-1]
+    role = store.read_role(role_id)
+    pipeline = store.read_pipeline()
+
+    assert role["company_domain"] == "notion.so"
+    assert role["pipeline_state"] == "sourced"
+    assert any(row["role_id"] == role_id for row in pipeline)
+
+
+def test_role_actions_can_advance_and_clear_judgment_calls(tmp_path: Path, monkeypatch) -> None:
+    configure_store_root(tmp_path, monkeypatch)
+    role = make_role("gamma-coo-20260428", "f2_blocked")
+    role["gate_needs_judgment_call"] = [
+        {
+            "gate_id": "relocation_required",
+            "reason": "Need remote clarification",
+            "recommended_probes": ["Can they hire in Poland?"],
+        }
+    ]
+    _write_role(role)
+    store.write_pipeline([make_pipeline_row(role)], writer_id="system")
+    client = TestClient(app)
+
+    clear_response = client.post(
+        f"/roles/{role['role_id']}/judgment/clear",
+        follow_redirects=False,
+    )
+    advance_response = client.post(
+        f"/roles/{role['role_id']}/advance",
+        data={"target_state": "ready_to_submit", "reason": "human review complete"},
+        follow_redirects=False,
+    )
+
+    updated_role = store.read_role(role["role_id"])
+    updated_pipeline = store.read_pipeline()[0]
+
+    assert clear_response.status_code == 303
+    assert advance_response.status_code == 303
+    assert updated_role["gate_needs_judgment_call"] is None
+    assert updated_role["pipeline_state"] == "ready_to_submit"
+    assert updated_pipeline["pipeline_state"] == "ready_to_submit"

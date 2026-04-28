@@ -5,14 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{{ role.role_id }} · JobPilot</title>
     <style>
-      body { margin: 0; font-family: Inter, ui-sans-serif, system-ui, sans-serif; background: #0f172a; color: #e5e7eb; }
-      .page { max-width: 1380px; margin: 0 auto; padding: 24px; }
+      body { margin: 0; font-family: Inter, ui-sans-serif, system-ui, sans-serif; background: #0b1220; color: #e5e7eb; }
+      .page { max-width: 1400px; margin: 0 auto; padding: 24px; }
       a { color: #93c5fd; text-decoration: none; }
-      .head { display: flex; justify-content: space-between; gap: 16px; align-items: end; }
+      .head, .breadcrumbs, .action-row, .form-row { display: flex; gap: 12px; flex-wrap: wrap; }
+      .head { justify-content: space-between; align-items: end; }
+      .breadcrumbs { margin-bottom: 12px; }
       .grid { display: grid; grid-template-columns: 1.2fr .8fr; gap: 16px; margin-top: 20px; }
       .stack { display: grid; gap: 16px; }
       .panel { background: #111827; border: 1px solid #1f2937; border-radius: 8px; padding: 16px; }
-      .meta { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-top: 16px; }
+      .meta { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; margin-top: 16px; }
       .meta .panel { padding: 12px; }
       .label { font-size: 12px; color: #94a3b8; }
       .value { margin-top: 6px; color: #f8fafc; word-break: break-word; }
@@ -20,28 +22,97 @@
       ul { margin: 0; padding-left: 18px; }
       table { width: 100%; border-collapse: collapse; font-size: 13px; }
       th, td { text-align: left; padding: 8px; border-bottom: 1px solid #1f2937; vertical-align: top; }
-      @media (max-width: 1000px) { .grid, .meta { grid-template-columns: 1fr; } }
+      button, .link-btn, select, input, textarea {
+        border: 1px solid #334155;
+        background: #0f172a;
+        color: #f8fafc;
+        border-radius: 8px;
+        font: inherit;
+      }
+      button, .link-btn { padding: 10px 14px; cursor: pointer; text-decoration: none; }
+      .primary { background: #2563eb; border-color: #2563eb; }
+      select, input, textarea { padding: 10px 12px; width: 100%; }
+      textarea { min-height: 88px; resize: vertical; }
+      form { margin: 0; }
+      .mini-form { display: grid; gap: 10px; }
+      .pill {
+        display: inline-block;
+        padding: 3px 8px;
+        border-radius: 999px;
+        background: #1e293b;
+        color: #e2e8f0;
+        font-size: 12px;
+      }
+      @media (max-width: 1100px) { .grid, .meta { grid-template-columns: 1fr; } }
     </style>
   </head>
   <body>
     <main class="page">
+      <div class="breadcrumbs">
+        <a href="/">Dashboard</a>
+        <a href="/queue">Queue</a>
+        <a href="/intake">Intake</a>
+      </div>
+
       <div class="head">
         <div>
-          <a href="/">← Back to dashboard</a>
           <h1>{{ role.role_id }}</h1>
           <p>{{ role.jd.title }} · {{ role.company_domain }}</p>
+        </div>
+        <div class="action-row">
+          {% if next_action_label %}
+          <form method="post" action="/roles/{{ role.role_id }}/run-next">
+            <button class="primary" type="submit">Run next step ({{ next_action_label }})</button>
+          </form>
+          {% endif %}
+          <form method="post" action="/roles/{{ role.role_id }}/run-a0">
+            <button type="submit">Run A0 now</button>
+          </form>
+          <form method="post" action="/roles/{{ role.role_id }}/run-f2">
+            <button type="submit">Run F2 now</button>
+          </form>
         </div>
       </div>
 
       <section class="meta">
-        <div class="panel"><div class="label">State</div><div class="value">{{ role.pipeline_state }}</div></div>
+        <div class="panel"><div class="label">State</div><div class="value"><span class="pill">{{ role.pipeline_state }}</span></div></div>
         <div class="panel"><div class="label">F1</div><div class="value">{{ role.filter_status.f1.status }}</div></div>
         <div class="panel"><div class="label">F2</div><div class="value">{{ role.filter_status.f2.status }} / {{ role.filter_status.f2.stance or "—" }}</div></div>
         <div class="panel"><div class="label">Judgment calls</div><div class="value">{{ judgment_calls|length }}</div></div>
+        <div class="panel"><div class="label">Source</div><div class="value">{% if row and row.source_url %}<a href="{{ row.source_url }}" target="_blank" rel="noreferrer">{{ row.source_url }}</a>{% else %}—{% endif %}</div></div>
       </section>
 
       <section class="grid">
         <div class="stack">
+          <div class="panel">
+            <h2>Controls</h2>
+            <div class="stack">
+              <form class="mini-form" method="post" action="/roles/{{ role.role_id }}/advance">
+                <div class="form-row">
+                  <div style="flex: 1 1 220px;">
+                    <label class="label" for="target_state">Move to state</label>
+                    <select id="target_state" name="target_state">
+                      {% for state in state_options %}
+                      <option value="{{ state }}" {% if state == role.pipeline_state %}selected{% endif %}>{{ state }}</option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                  <div style="flex: 2 1 320px;">
+                    <label class="label" for="reason">Reason</label>
+                    <input id="reason" name="reason" type="text" value="manual_operator_update" />
+                  </div>
+                </div>
+                <div>
+                  <button type="submit">Apply state change</button>
+                </div>
+              </form>
+
+              <form method="post" action="/roles/{{ role.role_id }}/judgment/clear">
+                <button type="submit">Clear judgment calls</button>
+              </form>
+            </div>
+          </div>
+
           <div class="panel">
             <h2>360 Synthesis</h2>
             <pre>{{ synthesis_json }}</pre>
@@ -94,4 +165,4 @@
       </section>
     </main>
   </body>
-  </html>
+</html>

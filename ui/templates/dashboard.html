@@ -3,20 +3,21 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>JobPilot Console</title>
+    <title>JobPilot Workbench</title>
     <style>
       :root { color-scheme: light dark; }
       body {
         margin: 0;
         font-family: Inter, ui-sans-serif, system-ui, sans-serif;
-        background: #0f172a;
+        background: #0b1220;
         color: #e5e7eb;
       }
-      .page { max-width: 1380px; margin: 0 auto; padding: 24px; }
-      .hero { display: flex; justify-content: space-between; gap: 16px; align-items: end; }
-      h1, h2 { margin: 0; }
+      .page { max-width: 1400px; margin: 0 auto; padding: 24px; }
+      .hero, .hero-links, .actions { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+      .hero { justify-content: space-between; align-items: end; }
+      .hero-copy h1, h2, h3 { margin: 0; }
       p { color: #94a3b8; }
-      .actions { display: flex; gap: 12px; flex-wrap: wrap; }
+      a { color: #bfdbfe; text-decoration: none; }
       button, .link-btn {
         border: 1px solid #334155;
         background: #111827;
@@ -27,11 +28,14 @@
         text-decoration: none;
       }
       .link-btn { display: inline-flex; align-items: center; }
+      .primary { background: #2563eb; border-color: #2563eb; }
       .metrics {
-        display: grid; grid-template-columns: repeat(6, minmax(0, 1fr));
-        gap: 12px; margin: 24px 0;
+        display: grid;
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+        gap: 12px;
+        margin: 24px 0;
       }
-      .metric, .panel {
+      .metric, .panel, .queue-card {
         background: #111827;
         border: 1px solid #1f2937;
         border-radius: 8px;
@@ -39,23 +43,30 @@
       .metric { padding: 16px; }
       .metric .value { font-size: 28px; font-weight: 700; color: #f8fafc; }
       .metric .label { font-size: 13px; color: #94a3b8; margin-top: 6px; }
-      .grid { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; }
-      .panel { padding: 16px; overflow: hidden; }
+      .layout { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; }
+      .panel, .queue-card { padding: 16px; overflow: hidden; }
       table { width: 100%; border-collapse: collapse; font-size: 14px; }
       th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid #1f2937; vertical-align: top; }
       th { color: #cbd5e1; font-weight: 600; }
       td a { color: #93c5fd; text-decoration: none; }
       .pill {
-        display: inline-block; padding: 3px 8px; border-radius: 999px;
-        background: #1e293b; color: #e2e8f0; font-size: 12px;
+        display: inline-block;
+        padding: 3px 8px;
+        border-radius: 999px;
+        background: #1e293b;
+        color: #e2e8f0;
+        font-size: 12px;
       }
-      .queue-list { display: grid; gap: 14px; }
-      .queue-group h3 { margin: 0 0 8px 0; font-size: 14px; color: #f8fafc; }
-      .queue-group ul { margin: 0; padding-left: 18px; color: #cbd5e1; }
+      .queue-grid { display: grid; gap: 14px; }
+      .queue-card ul { margin: 10px 0 0 18px; color: #cbd5e1; }
+      .queue-card li + li { margin-top: 8px; }
+      .meta { color: #94a3b8; font-size: 13px; margin-top: 4px; }
       .empty { color: #64748b; }
+      .compact-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+      .compact-actions form { margin: 0; }
       @media (max-width: 1100px) {
         .metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-        .grid { grid-template-columns: 1fr; }
+        .layout { grid-template-columns: 1fr; }
       }
       @media (max-width: 700px) {
         .hero { flex-direction: column; align-items: stretch; }
@@ -66,20 +77,23 @@
   <body>
     <main class="page">
       <section class="hero">
-        <div>
-          <h1>JobPilot Console</h1>
-          <p>Operator dashboard for the flat-file pipeline.</p>
+        <div class="hero-copy">
+          <div class="hero-links">
+            <a href="/queue">Queue</a>
+            <a href="/intake">Intake</a>
+            {% if latest_report %}<a href="/reports/latest">Latest report</a>{% endif %}
+          </div>
+          <h1>JobPilot Workbench</h1>
+          <p>Start roles, steer stuck work, and keep the pipeline moving from one place.</p>
         </div>
         <div class="actions">
+          <a class="link-btn primary" href="/intake">Create role</a>
           <form method="post" action="/runner/tick">
             <button type="submit">Run one tick</button>
           </form>
           <form method="post" action="/reports/generate">
             <button type="submit">Generate today’s report</button>
           </form>
-          {% if latest_report %}
-          <a class="link-btn" href="/reports/latest">Open latest report</a>
-          {% endif %}
         </div>
       </section>
 
@@ -92,9 +106,9 @@
         {% endfor %}
       </section>
 
-      <section class="grid">
+      <section class="layout">
         <div class="panel">
-          <h2>Pipeline</h2>
+          <h2>Active Pipeline</h2>
           <table>
             <thead>
               <tr>
@@ -109,7 +123,7 @@
               </tr>
             </thead>
             <tbody>
-              {% for row in rows %}
+              {% for row in active_rows %}
               <tr>
                 <td><a href="/roles/{{ row.role_id }}">{{ row.role_id }}</a></td>
                 <td>{{ row.company_domain }}</td>
@@ -125,30 +139,59 @@
           </table>
         </div>
 
-        <aside class="panel">
-          <h2>Review Queue</h2>
-          <div class="queue-list">
-            <div class="queue-group">
-              <h3>Blocked</h3>
-              {% if queue.blocked %}
-              <ul>{% for row in queue.blocked %}<li><a href="/roles/{{ row.role_id }}">{{ row.role_id }}</a></li>{% endfor %}</ul>
-              {% else %}<div class="empty">—</div>{% endif %}
-            </div>
-            <div class="queue-group">
-              <h3>Ready to submit</h3>
-              {% if queue.ready %}
-              <ul>{% for row in queue.ready %}<li><a href="/roles/{{ row.role_id }}">{{ row.role_id }}</a></li>{% endfor %}</ul>
-              {% else %}<div class="empty">—</div>{% endif %}
-            </div>
-            <div class="queue-group">
-              <h3>Errors</h3>
-              {% if queue.errors %}
-              <ul>{% for row in queue.errors %}<li><a href="/roles/{{ row.role_id }}">{{ row.role_id }}</a></li>{% endfor %}</ul>
-              {% else %}<div class="empty">—</div>{% endif %}
+        <aside class="queue-grid">
+          <div class="queue-card">
+            <h3>Blocked</h3>
+            {% if queue.blocked %}
+            <ul>
+              {% for row in queue.blocked %}
+              <li>
+                <a href="/roles/{{ row.role_id }}">{{ row.role_id }}</a>
+                <div class="meta">{{ row.company_domain }} · {{ row.title }}</div>
+              </li>
+              {% endfor %}
+            </ul>
+            {% else %}<div class="empty">Nothing blocked right now.</div>{% endif %}
+          </div>
+
+          <div class="queue-card">
+            <h3>Ready to submit</h3>
+            {% if queue.ready %}
+            <ul>
+              {% for row in queue.ready %}
+              <li>
+                <a href="/roles/{{ row.role_id }}">{{ row.role_id }}</a>
+                <div class="meta">{{ row.company_domain }} · {{ row.title }}</div>
+              </li>
+              {% endfor %}
+            </ul>
+            {% else %}<div class="empty">No roles waiting for submission.</div>{% endif %}
+          </div>
+
+          <div class="queue-card">
+            <h3>Errors</h3>
+            {% if queue.errors %}
+            <ul>
+              {% for row in queue.errors %}
+              <li>
+                <a href="/roles/{{ row.role_id }}">{{ row.role_id }}</a>
+                <div class="meta">{{ row.company_domain }} · {{ row.title }}</div>
+              </li>
+              {% endfor %}
+            </ul>
+            {% else %}<div class="empty">No error holds.</div>{% endif %}
+          </div>
+
+          <div class="queue-card">
+            <h3>Quick Start</h3>
+            <p>Use intake to create a role, then either run one tick or open the role and drive the next step directly.</p>
+            <div class="compact-actions">
+              <a class="link-btn primary" href="/intake">New role</a>
+              <a class="link-btn" href="/queue">Open queues</a>
             </div>
           </div>
         </aside>
       </section>
     </main>
   </body>
-  </html>
+</html>

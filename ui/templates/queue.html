@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Queue · JobPilot</title>
+    <style>
+      body { margin: 0; font-family: Inter, ui-sans-serif, system-ui, sans-serif; background: #0b1220; color: #e5e7eb; }
+      .page { max-width: 1280px; margin: 0 auto; padding: 24px; }
+      .breadcrumbs, .grid { display: flex; gap: 12px; flex-wrap: wrap; }
+      .grid { align-items: stretch; }
+      .lane { flex: 1 1 300px; background: #111827; border: 1px solid #1f2937; border-radius: 8px; padding: 16px; }
+      a { color: #93c5fd; text-decoration: none; }
+      ul { margin: 12px 0 0 18px; padding: 0; }
+      li + li { margin-top: 10px; }
+      .meta { color: #94a3b8; font-size: 13px; }
+      .empty { color: #64748b; }
+    </style>
+  </head>
+  <body>
+    <main class="page">
+      <div class="breadcrumbs">
+        <a href="/">Dashboard</a>
+        <a href="/intake">Intake</a>
+      </div>
+      <h1>Queues</h1>
+      <p>These are the places where human attention usually matters most.</p>
+      <section class="grid">
+        <div class="lane">
+          <h2>Blocked</h2>
+          {% if queue.blocked %}
+          <ul>
+            {% for row in queue.blocked %}
+            <li><a href="/roles/{{ row.role_id }}">{{ row.role_id }}</a><div class="meta">{{ row.company_domain }} · {{ row.title }}</div></li>
+            {% endfor %}
+          </ul>
+          {% else %}<div class="empty">Nothing blocked.</div>{% endif %}
+        </div>
+        <div class="lane">
+          <h2>Ready to submit</h2>
+          {% if queue.ready %}
+          <ul>
+            {% for row in queue.ready %}
+            <li><a href="/roles/{{ row.role_id }}">{{ row.role_id }}</a><div class="meta">{{ row.company_domain }} · {{ row.title }}</div></li>
+            {% endfor %}
+          </ul>
+          {% else %}<div class="empty">Nothing waiting for submission.</div>{% endif %}
+        </div>
+        <div class="lane">
+          <h2>Errors</h2>
+          {% if queue.errors %}
+          <ul>
+            {% for row in queue.errors %}
+            <li><a href="/roles/{{ row.role_id }}">{{ row.role_id }}</a><div class="meta">{{ row.company_domain }} · {{ row.title }}</div></li>
+            {% endfor %}
+          </ul>
+          {% else %}<div class="empty">No error holds.</div>{% endif %}
+        </div>
+        <div class="lane">
+          <h2>Active</h2>
+          {% if queue.active %}
+          <ul>
+            {% for row in queue.active %}
+            <li><a href="/roles/{{ row.role_id }}">{{ row.role_id }}</a><div class="meta">{{ row.pipeline_state }} · {{ row.company_domain }}</div></li>
+            {% endfor %}
+          </ul>
+          {% else %}<div class="empty">No active roles.</div>{% endif %}
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

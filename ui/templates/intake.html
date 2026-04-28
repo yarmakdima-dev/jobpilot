@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Intake · JobPilot</title>
+    <style>
+      body { margin: 0; font-family: Inter, ui-sans-serif, system-ui, sans-serif; background: #0b1220; color: #e5e7eb; }
+      .page { max-width: 980px; margin: 0 auto; padding: 24px; }
+      .breadcrumbs, .stack, .row { display: flex; gap: 12px; flex-wrap: wrap; }
+      .stack { flex-direction: column; }
+      .panel { background: #111827; border: 1px solid #1f2937; border-radius: 8px; padding: 16px; }
+      a { color: #93c5fd; text-decoration: none; }
+      label { display: block; font-size: 12px; color: #94a3b8; margin-bottom: 6px; }
+      input, select, textarea, button {
+        border: 1px solid #334155;
+        background: #0f172a;
+        color: #f8fafc;
+        border-radius: 8px;
+        font: inherit;
+      }
+      input, select, textarea { width: 100%; padding: 10px 12px; }
+      textarea { min-height: 220px; resize: vertical; }
+      button { padding: 10px 14px; cursor: pointer; background: #2563eb; border-color: #2563eb; }
+      .field { flex: 1 1 260px; }
+      .helper { color: #94a3b8; }
+    </style>
+  </head>
+  <body>
+    <main class="page">
+      <div class="breadcrumbs">
+        <a href="/">Dashboard</a>
+        <a href="/queue">Queue</a>
+      </div>
+      <div class="panel">
+        <h1>Role Intake</h1>
+        <p class="helper">Paste the job details here and the pipeline will have something real to work with right away.</p>
+        <form class="stack" method="post" action="/intake">
+          <div class="row">
+            <div class="field">
+              <label for="company_domain">Company domain</label>
+              <input id="company_domain" name="company_domain" placeholder="notion.so" required />
+            </div>
+            <div class="field">
+              <label for="source_url">Job URL</label>
+              <input id="source_url" name="source_url" type="url" placeholder="https://..." required />
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="field">
+              <label for="title">Role title</label>
+              <input id="title" name="title" placeholder="Chief Operating Officer" required />
+            </div>
+            <div class="field">
+              <label for="platform">Source platform</label>
+              <select id="platform" name="platform">
+                <option value="company_site">company_site</option>
+                <option value="linkedin">linkedin</option>
+                <option value="indeed">indeed</option>
+                <option value="rss">rss</option>
+                <option value="other">other</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="field">
+              <label for="location_stated">Location</label>
+              <input id="location_stated" name="location_stated" placeholder="Warsaw hybrid" />
+            </div>
+            <div class="field">
+              <label for="comp_stated">Compensation</label>
+              <input id="comp_stated" name="comp_stated" placeholder="Optional" />
+            </div>
+            <div class="field">
+              <label for="initial_state">Start at</label>
+              <select id="initial_state" name="initial_state">
+                {% for state in state_options %}
+                <option value="{{ state }}" {% if state == "sourced" %}selected{% endif %}>{{ state }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label for="body">Job description</label>
+            <textarea id="body" name="body" placeholder="Paste the job description here..." required></textarea>
+          </div>
+
+          <div>
+            <button type="submit">Create role</button>
+          </div>
+        </form>
+      </div>
+    </main>
+  </body>
+</html>
