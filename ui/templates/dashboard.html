@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>JobPilot Console</title>
+    <style>
+      :root { color-scheme: light dark; }
+      body {
+        margin: 0;
+        font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+        background: #0f172a;
+        color: #e5e7eb;
+      }
+      .page { max-width: 1380px; margin: 0 auto; padding: 24px; }
+      .hero { display: flex; justify-content: space-between; gap: 16px; align-items: end; }
+      h1, h2 { margin: 0; }
+      p { color: #94a3b8; }
+      .actions { display: flex; gap: 12px; flex-wrap: wrap; }
+      button, .link-btn {
+        border: 1px solid #334155;
+        background: #111827;
+        color: #f8fafc;
+        padding: 10px 14px;
+        border-radius: 8px;
+        cursor: pointer;
+        text-decoration: none;
+      }
+      .link-btn { display: inline-flex; align-items: center; }
+      .metrics {
+        display: grid; grid-template-columns: repeat(6, minmax(0, 1fr));
+        gap: 12px; margin: 24px 0;
+      }
+      .metric, .panel {
+        background: #111827;
+        border: 1px solid #1f2937;
+        border-radius: 8px;
+      }
+      .metric { padding: 16px; }
+      .metric .value { font-size: 28px; font-weight: 700; color: #f8fafc; }
+      .metric .label { font-size: 13px; color: #94a3b8; margin-top: 6px; }
+      .grid { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; }
+      .panel { padding: 16px; overflow: hidden; }
+      table { width: 100%; border-collapse: collapse; font-size: 14px; }
+      th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid #1f2937; vertical-align: top; }
+      th { color: #cbd5e1; font-weight: 600; }
+      td a { color: #93c5fd; text-decoration: none; }
+      .pill {
+        display: inline-block; padding: 3px 8px; border-radius: 999px;
+        background: #1e293b; color: #e2e8f0; font-size: 12px;
+      }
+      .queue-list { display: grid; gap: 14px; }
+      .queue-group h3 { margin: 0 0 8px 0; font-size: 14px; color: #f8fafc; }
+      .queue-group ul { margin: 0; padding-left: 18px; color: #cbd5e1; }
+      .empty { color: #64748b; }
+      @media (max-width: 1100px) {
+        .metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+        .grid { grid-template-columns: 1fr; }
+      }
+      @media (max-width: 700px) {
+        .hero { flex-direction: column; align-items: stretch; }
+        .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="page">
+      <section class="hero">
+        <div>
+          <h1>JobPilot Console</h1>
+          <p>Operator dashboard for the flat-file pipeline.</p>
+        </div>
+        <div class="actions">
+          <form method="post" action="/runner/tick">
+            <button type="submit">Run one tick</button>
+          </form>
+          <form method="post" action="/reports/generate">
+            <button type="submit">Generate today’s report</button>
+          </form>
+          {% if latest_report %}
+          <a class="link-btn" href="/reports/latest">Open latest report</a>
+          {% endif %}
+        </div>
+      </section>
+
+      <section class="metrics">
+        {% for state, count in counters.items() %}
+        <div class="metric">
+          <div class="value">{{ count }}</div>
+          <div class="label">{{ state }}</div>
+        </div>
+        {% endfor %}
+      </section>
+
+      <section class="grid">
+        <div class="panel">
+          <h2>Pipeline</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Role</th>
+                <th>Company</th>
+                <th>Title</th>
+                <th>State</th>
+                <th>F1</th>
+                <th>F2</th>
+                <th>Judgment Calls</th>
+                <th>Updated</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in rows %}
+              <tr>
+                <td><a href="/roles/{{ row.role_id }}">{{ row.role_id }}</a></td>
+                <td>{{ row.company_domain }}</td>
+                <td>{{ row.title }}</td>
+                <td><span class="pill">{{ row.pipeline_state }}</span></td>
+                <td>{{ row.f1_status }}</td>
+                <td>{{ row.f2_status }}{% if row.f2_stance %} / {{ row.f2_stance }}{% endif %}</td>
+                <td>{{ row.judgment_call_count }}</td>
+                <td>{{ row.updated_at or "—" }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <aside class="panel">
+          <h2>Review Queue</h2>
+          <div class="queue-list">
+            <div class="queue-group">
+              <h3>Blocked</h3>
+              {% if queue.blocked %}
+              <ul>{% for row in queue.blocked %}<li><a href="/roles/{{ row.role_id }}">{{ row.role_id }}</a></li>{% endfor %}</ul>
+              {% else %}<div class="empty">—</div>{% endif %}
+            </div>
+            <div class="queue-group">
+              <h3>Ready to submit</h3>
+              {% if queue.ready %}
+              <ul>{% for row in queue.ready %}<li><a href="/roles/{{ row.role_id }}">{{ row.role_id }}</a></li>{% endfor %}</ul>
+              {% else %}<div class="empty">—</div>{% endif %}
+            </div>
+            <div class="queue-group">
+              <h3>Errors</h3>
+              {% if queue.errors %}
+              <ul>{% for row in queue.errors %}<li><a href="/roles/{{ row.role_id }}">{{ row.role_id }}</a></li>{% endfor %}</ul>
+              {% else %}<div class="empty">—</div>{% endif %}
+            </div>
+          </div>
+        </aside>
+      </section>
+    </main>
+  </body>
+  </html>
