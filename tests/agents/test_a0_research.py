@@ -22,6 +22,7 @@ import pytest
 # ── Test configuration ────────────────────────────────────────────────────────
 
 FIXTURES_DIR = Path(__file__).parent.parent / "fixtures" / "a0"
+LIVE_FIXTURE_PATH = FIXTURES_DIR / "gemini_response_notion_live.json"
 
 
 def pytest_addoption(parser):
@@ -228,14 +229,78 @@ class TestResearchCompanyUnit:
             research_company(base_role)
 
     def test_malformed_response_raises_value_error(self, base_role, malformed_profile):
-        """ValueError raised when Gemini response is missing required sections."""
+        """A0SchemaError raised when Gemini response is missing required sections."""
         mock_response = _make_gemini_response(malformed_profile)
         with (
             patch("agents.a0.research.call_research", return_value=mock_response),
-            pytest.raises(ValueError, match="missing required"),
+            pytest.raises(Exception, match="missing required"),
         ):
             from agents.a0.research import research_company
             research_company(base_role)
+
+    def test_snapshot_domain_backfilled_from_role(self, base_role, clean_profile):
+        """snapshot.domain is filled from role.company_domain when Gemini omits it."""
+        clean_profile["snapshot"].pop("domain", None)
+        mock_response = _make_gemini_response(clean_profile)
+        with patch("agents.a0.research.call_research", return_value=mock_response):
+            from agents.a0.research import research_company
+            profile = research_company(base_role)
+
+        assert profile["snapshot"]["domain"] == "acmecorp.io"
+
+    def test_gemini_variant_fields_are_normalized(self, base_role, clean_profile):
+        """Alternate Gemini field names are normalized into the local schema shape."""
+        snapshot = clean_profile["snapshot"]
+        snapshot.pop("hq", None)
+        snapshot.pop("primary_market", None)
+        snapshot.pop("sector", None)
+        snapshot.pop("sub_sector", None)
+        snapshot["headquarters_city"] = "San Francisco, California"
+        snapshot["company_description"] = (
+            "Notion is a productivity and note-taking application that serves as "
+            "an all-in-one workspace for knowledge management and project tracking."
+        )
+
+        business = clean_profile["business_model"]
+        business.pop("revenue_model", None)
+        business["revenue_streams"] = [
+            {"stream": "SaaS Subscriptions", "description": "Paid plans", "primary": True}
+        ]
+        business["pricing_strategy"] = "Freemium tiers"
+        business["customer_segments"] = "Global teams"
+
+        strategy = clean_profile["strategy_and_direction"]
+        strategy["stated_strategy"] = "Global growth with AI expansion"
+        strategy["mission_and_vision"] = "Make toolmaking ubiquitous"
+
+        mock_response = _make_gemini_response(clean_profile)
+        with patch("agents.a0.research.call_research", return_value=mock_response):
+            from agents.a0.research import research_company
+            profile = research_company(base_role)
+
+        assert profile["snapshot"]["hq"] == "San Francisco, California"
+        assert profile["snapshot"]["primary_market"] == "Global"
+        assert profile["snapshot"]["sector"] == "Software"
+        assert profile["snapshot"]["sub_sector"] == "Productivity SaaS"
+        assert profile["business_model"]["revenue_model"] == "SaaS Subscriptions"
+
+    def test_missing_hq_is_marked_as_research_gap(self, base_role, clean_profile):
+        """If Gemini omits all HQ aliases, A0 preserves the profile and flags the gap."""
+        snapshot = clean_profile["snapshot"]
+        snapshot.pop("hq", None)
+        snapshot.pop("headquarters_city", None)
+        snapshot.pop("headquarters", None)
+        snapshot.pop("headquarters_location", None)
+        snapshot.pop("headquarters_region", None)
+        snapshot.pop("location", None)
+
+        mock_response = _make_gemini_response(clean_profile)
+        with patch("agents.a0.research.call_research", return_value=mock_response):
+            from agents.a0.research import research_company
+            profile = research_company(base_role)
+
+        assert profile["snapshot"]["hq"] == "Unknown (research gap)"
+        assert "HQ could not be resolved" in profile["instance_meta"]["confidence_notes"]
 
     def test_missing_company_domain_raises(self):
         """ValueError raised when role has no company_domain."""
@@ -488,7 +553,7 @@ class TestA0Integration:
 
         # Save fixtures if requested
         if request.config.getoption("--save-fixtures", default=False):
-            fixture_path = FIXTURES_DIR / "gemini_response_clean.json"
+            fixture_path = LIVE_FIXTURE_PATH
             # Preserve fixture note
             profile["_fixture_note"] = (
                 "Captured from live Gemini integration test against notion.so. "

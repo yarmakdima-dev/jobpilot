@@ -8,6 +8,11 @@ Rate-limit handling (Q1=B decision, 2026-04-28):
     attempts).  Assumes billing is enabled on the key — retries are the
     "paid fallback" behaviour.  If all retries exhaust, raises A0ResearchError
     with a retry hint for decisions.log.
+
+API constraint (discovered 2026-04-28):
+    google_search grounding + response_mime_type="application/json" cannot
+    be combined in the same call (400 INVALID_ARGUMENT).  response_schema
+    alone is sufficient to obtain structured JSON output alongside grounding.
 """
 
 from __future__ import annotations
@@ -59,6 +64,10 @@ class A0NoSourcesError(A0ResearchError):
 def call_research(prompt: str, response_schema: dict) -> GeminiResponse:
     """Call Gemini 2.5 Pro with google_search grounding + responseSchema.
 
+    Note: response_mime_type must NOT be set alongside google_search tools —
+    the API rejects that combination with 400 INVALID_ARGUMENT. response_schema
+    alone is sufficient to constrain structured JSON output.
+
     On rate limit: exponential backoff up to MAX_RETRIES, then raises
     A0ResearchError.  Assumes billing is active (Q1=B).
 
@@ -83,7 +92,6 @@ def call_research(prompt: str, response_schema: dict) -> GeminiResponse:
                 contents=prompt,
                 config=types.GenerateContentConfig(
                     tools=[types.Tool(google_search=types.GoogleSearch())],
-                    response_mime_type="application/json",
                     response_schema=response_schema,
                 ),
             )
@@ -147,7 +155,6 @@ def call_with_url_fetch(
                 contents=enriched,
                 config=types.GenerateContentConfig(
                     tools=[types.Tool(google_search=types.GoogleSearch())],
-                    response_mime_type="application/json",
                     response_schema=response_schema,
                 ),
             )
@@ -188,11 +195,24 @@ def _make_client() -> genai.Client:
     return genai.Client(api_key=api_key)
 
 
+def _strip_markdown_fences(text: str) -> str:
+    """Remove leading ```json / ``` fences that Gemini sometimes wraps output in."""
+    import re
+    stripped = text.strip()
+    stripped = re.sub(r"^```(?:json)?\s*\n", "", stripped)
+    stripped = re.sub(r"\n```\s*$", "", stripped)
+    return stripped.strip()
+
+
 def _parse_response(raw: Any) -> GeminiResponse:
     """Extract content, grounding sources, and usage from a raw Gemini response."""
     text = getattr(raw, "text", None)
     if not text:
         raise A0ResearchError("Gemini returned an empty response body")
+
+    # Without response_mime_type, Gemini may wrap JSON in markdown fences.
+    # Strip them before parsing.
+    text = _strip_markdown_fences(text)
 
     try:
         content = json.loads(text)

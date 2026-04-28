@@ -1,0 +1,397 @@
+{
+  "business_model": {
+    "core_services": [
+      "Software platform"
+    ],
+    "pricing": "Notion operates on a freemium SaaS model with four main tiers: Free, Plus, Business, and Enterprise. The free plan is for individuals, while paid plans add more features for teams, such as unlimited blocks, advanced permissions, and better security. Notion AI is available as a paid add-on.",
+    "pricing_model": "Notion operates on a freemium SaaS model with four main tiers: Free, Plus, Business, and Enterprise. The free plan is for individuals, while paid plans add more features for teams, such as unlimited blocks, advanced permissions, and better security. Notion AI is available as a paid add-on.",
+    "products_and_services": [
+      {
+        "description": "A collaborative platform for note-taking, knowledge management, and project tracking, accessible via web, desktop, and mobile apps.",
+        "name": "Notion Workspace"
+      },
+      {
+        "description": "An integrated AI assistant that helps with content generation, summarization, and improving text within the workspace. This is an add-on feature.",
+        "name": "Notion AI"
+      },
+      {
+        "description": "A standalone calendar application that integrates with Notion databases and external calendars, launched after the acquisition of Cron.",
+        "name": "Notion Calendar"
+      },
+      {
+        "description": "A project management tool designed to connect planning, management, and execution of work within the Notion ecosystem.",
+        "name": "Notion Projects"
+      }
+    ],
+    "revenue_model": "Notion operates on a freemium SaaS model with four main tiers: Free, Plus, Business, and Enterprise. The free plan is for individuals, while paid plans add more features for teams, such as unlimited blocks, advanced permissions, and better security. Notion AI is available as a paid add-on.",
+    "target_customers": "Notion targets a wide range of customers, from individual users and students to startups and large enterprises. They have customers across various sectors, including technology, finance, and marketing, with notable clients like Figma, OpenAI, and more than 50% of Fortune 500 companies."
+  },
+  "gate_needs_judgment_call": {
+    "blocked": false,
+    "items": []
+  },
+  "hiring_signal": {
+    "discouraging_signals_in_jd": "None identified from the provided excerpt. The description is standard for a senior executive role at a high-growth tech company.",
+    "location_fit_for_user": {
+      "reasoning": "The job posting URL (notion.so/jobs/coo) does not provide a publicly accessible list of locations. The role is described as helping to 'scale operations globally'. While the company has a significant user base outside the US and is expanding in Europe, there is no explicit confirmation that the COO role can be based in Warsaw, Poland. The company's headquarters are in San Francisco. This ambiguity requires direct clarification.",
+      "verdict": "needs_judgment_call"
+    },
+    "role_context_and_reasoning": "The job description for the COO role indicates a need for a leader to partner with the CEO to scale global operations and drive operational excellence. The current COO, Akshay Kothari, has been instrumental in building out multiple functions from the ground up, including sales, marketing, finance, and people operations. This suggests the role is pivotal for Notion's next phase of growth and requires a leader capable of managing diverse business functions in a rapidly scaling environment."
+  },
+  "insider_signal_self_description": {
+    "company_values": "Notion's core values are: 1. We are drivers of our mission. 2. We are pace setters. 3. We are truth seekers. 4. We are kind and direct.",
+    "culture_description": "The company culture is described with words like \"collaborative,\" \"thoughtful,\" and valuing \"craft.\" They emphasize rigor, open-mindedness, and a bias toward action. There's a focus on being kind but also direct with feedback to help colleagues improve."
+  },
+  "instance_meta": {
+    "confidence_notes": "Gemini 2.5 Pro + google_search grounding. HQ could not be resolved from grounded sources; populated as research gap.",
+    "generated": "2026-04-28T16:59:46Z",
+    "research_depth": "heavy",
+    "researcher": "A0",
+    "role_url": "https://notion.so/jobs/coo",
+    "target_role": "Chief Operating Officer"
+  },
+  "leadership": {
+    "ceo": {
+      "name": "Ivan Zhao",
+      "origin": "Born in China, moved to Canada during childhood, making him a Chinese-Canadian entrepreneur.",
+      "parallel_business_flag": {
+        "carve_out_escalation": false,
+        "details": "No evidence of parallel businesses was found during research.",
+        "has_parallel_business": false,
+        "is_active": null,
+        "jurisdiction": null,
+        "overlap_risk": null
+      },
+      "public_profile_url": null,
+      "war_position": {
+        "confidence": "high",
+        "evidence": "Founder is of Chinese-Canadian origin, not Russian or Belarusian.",
+        "research_scope": "Standard search of public statements, interviews, and company blog posts.",
+        "value": "not_applicable"
+      }
+    },
+    "other_key_leaders": [
+      {
+        "name": "Akshay Kothari",
+        "origin": "Indian tech entrepreneur.",
+        "public_profile_url": null,
+        "title": "Chief Operating Officer"
+      },
+      {
+        "name": "Simon Last",
+        "origin": "United States (graduated from University of Maryland).",
+        "public_profile_url": null,
+        "title": "Co-founder"
+      }
+    ]
+  },
+  "market_view_outside_in": {
+    "competitive_set": [
+      {
+        "name": "Microsoft (with Loop, Word, etc.)",
+        "notes": "A major incumbent with the advantage of existing distribution through Microsoft 365. Microsoft Loop is a direct competitor."
+      },
+      {
+        "name": "Atlassian (with Confluence, Trello)",
+        "notes": "A strong competitor, especially with Confluence for wiki-based knowledge management and Trello for project management."
+      },
+      {
+        "name": "Google (with Workspace)",
+        "notes": "A significant competitor in the productivity space, though Notion aims to unify the functionalities that are often fragmented across Google's suite."
+      },
+      {
+        "name": "Coda",
+        "notes": "A startup competitor with a similar all-in-one document and workspace approach."
+      },
+      {
+        "name": "Airtable",
+        "notes": "Competes with Notion's database and project management capabilities."
+      },
+      {
+        "name": "ClickUp",
+        "notes": "A fast-growing competitor in the all-in-one productivity and project management space."
+      }
+    ],
+    "competitors": [
+      {
+        "name": "Microsoft (with Loop, Word, etc.)",
+        "notes": "A major incumbent with the advantage of existing distribution through Microsoft 365. Microsoft Loop is a direct competitor."
+      },
+      {
+        "name": "Atlassian (with Confluence, Trello)",
+        "notes": "A strong competitor, especially with Confluence for wiki-based knowledge management and Trello for project management."
+      },
+      {
+        "name": "Google (with Workspace)",
+        "notes": "A significant competitor in the productivity space, though Notion aims to unify the functionalities that are often fragmented across Google's suite."
+      },
+      {
+        "name": "Coda",
+        "notes": "A startup competitor with a similar all-in-one document and workspace approach."
+      },
+      {
+        "name": "Airtable",
+        "notes": "Competes with Notion's database and project management capabilities."
+      },
+      {
+        "name": "ClickUp",
+        "notes": "A fast-growing competitor in the all-in-one productivity and project management space."
+      }
+    ],
+    "funding_and_valuation": {
+      "investors": "Key investors include Sequoia Capital, Coatue, Index Ventures, and First Round Capital.",
+      "latest_round_date": "October 2021.",
+      "latest_round_size": "$275 million (Series C).",
+      "total_funding": "Approximately $343 million.",
+      "valuation": "$10 billion as of the latest funding round in 2021."
+    },
+    "market_sentiment_and_reputation": "Notion has a strong reputation, particularly for its minimalist design, flexibility, and community-driven growth. It has seen rapid user growth, reaching over 100 million users by 2025. There is market speculation about a potential IPO in 2026, though no official announcements have been made."
+  },
+  "name_confusion_check": {
+    "confidence_notes": "The primary research target, Notion.so (Notion Labs, Inc.), is a well-known entity in the productivity software space, which minimizes the risk of confusion with smaller, similarly named companies.",
+    "lookalikes": [
+      {
+        "contamination_risk": "Low. The different founding date, founder, and specific focus on website building (as opposed to a general workspace) make it distinguishable from Notion.so.",
+        "distinguishing_facts": "A cloud-based website development platform founded in 2023 by Mehdi Ben Hadj Ali, allowing users to create websites without coding.",
+        "name": "Notion"
+      }
+    ],
+    "none_found": false
+  },
+  "risks_and_open_questions": {
+    "domain_exclusion_check": {
+      "reasoning": "Notion Labs, Inc. operates in the business/productivity software industry, which does not fall into any standard exclusion categories like gambling, adult entertainment, or weapons manufacturing.",
+      "verdict": "PASS"
+    },
+    "key_risks": [
+      {
+        "details": "Notion faces significant competition from large, established incumbents like Microsoft and Atlassian, who have deep enterprise penetration and can bundle competing products. Newer, well-funded startups like ClickUp also pose a threat.",
+        "risk": "Intense Competition"
+      },
+      {
+        "details": "The company's 'land and expand' strategy relies on converting its large base of free individual users into paying enterprise customers. A failure to effectively monetize this user base could slow revenue growth.",
+        "risk": "Monetization of Freemium Model"
+      },
+      {
+        "details": "As an 'all-in-one' tool, there is a risk that the product becomes too complex or difficult to learn, which could hinder adoption, especially when competing with simpler, single-purpose tools.",
+        "risk": "Product Complexity"
+      }
+    ],
+    "open_questions": [
+      {
+        "question": "What is the specific strategy for competing with Microsoft Loop and its deep integration into the Microsoft 365 ecosystem?",
+        "source": "Derived from analysis of competitor landscape."
+      },
+      {
+        "question": "What are the current conversion rates from free to paid plans, and how is the company accelerating this conversion among its 100M+ users?",
+        "source": "Derived from analysis of the business model."
+      },
+      {
+        "question": "What is the company's official stance on remote work for executive leadership, specifically for the COO role?",
+        "source": "Direct question arising from the location fit analysis."
+      }
+    ]
+  },
+  "snapshot": {
+    "domain": "notion.so",
+    "employee_count": "Approximately 1,200 employees.",
+    "founded": "2013",
+    "founding_year": 2013,
+    "hq": "Unknown (research gap)",
+    "hq_location": "San Francisco, California, USA",
+    "legal_name": "Notion Labs, Inc.",
+    "primary_market": "Unknown",
+    "sector": "Software",
+    "short_description": "Notion provides an all-in-one workspace that combines note-taking, project management, databases, and wikis, allowing individuals and teams to create customized workflows.",
+    "sub_sector": "Software Tools"
+  },
+  "source_index": {
+    "S1": {
+      "description": "Built In article on Notion's company culture.",
+      "url": "https://builtina.com/company/notion/culture"
+    },
+    "S10": {
+      "description": "Tracxn company profile of Notion.",
+      "url": "https://tracxn.com/d/companies/notion/__p9bW19wG-bWz0i3hH3d23z2yT0uA6j4S7xJ9pW8qZ3k/detailed-profile"
+    },
+    "S11": {
+      "description": "Contrary Research business breakdown of Notion.",
+      "url": "https://contrary.com/research/notion-breakdown"
+    },
+    "S12": {
+      "description": "Startup Intros profile of Akshay Kothari.",
+      "url": "https://startupintros.com/people/akshay-kothari"
+    },
+    "S13": {
+      "description": "Built In SF article on Notion's culture of 'craft'.",
+      "url": "https://www.builtinsf.com/2025/02/03/notion-company-culture-craft"
+    },
+    "S14": {
+      "description": "Notion blog on work culture and values.",
+      "url": "https://www.notion.so/blog/work-culture"
+    },
+    "S15": {
+      "description": "Simple.ink article on Notion's future direction.",
+      "url": "https://www.simple.ink/blog/notion-2025"
+    },
+    "S16": {
+      "description": "Startup Intros company profile of Notion.",
+      "url": "https://startupintros.com/company/notion"
+    },
+    "S17": {
+      "description": "TexAu profile on Notion's funding.",
+      "url": "https://texau.com/company-database/notion"
+    },
+    "S18": {
+      "description": "The Digital Project Manager article on Notion's pricing.",
+      "url": "https://thedigitalprojectmanager.com/tools/notion-pricing/"
+    },
+    "S19": {
+      "description": "Kitrum article on founder Ivan Zhao.",
+      "url": "https://kitrum.com/blog/the-phenomenal-journey-of-ivan-zhao-notions-founder/"
+    },
+    "S2": {
+      "description": "Vendr article on Notion's pricing model.",
+      "url": "https://www.vendr.com/blog/notion-pricing-is-notion-free"
+    },
+    "S20": {
+      "description": "Generation Digital article on Notion pricing plans.",
+      "url": "https://generation.digital/notion-pricing/"
+    },
+    "S21": {
+      "description": "Interview with Akshay Kothari, COO of Notion.",
+      "url": "https://www.readthemanual.co/p/akshay-kothari-notion-coo"
+    },
+    "S22": {
+      "description": "Sequoia Capital article on Ivan Zhao.",
+      "url": "https://www.sequoiacap.com/article/ivan-zhao-notion-spotlight/"
+    },
+    "S23": {
+      "description": "Wellfound profile of Notion.",
+      "url": "https://wellfound.com/company/notion"
+    },
+    "S24": {
+      "description": "6sense data on Notion's market share in Reporting.",
+      "url": "https://www.6sense.com/company/notion/market-share/reporting"
+    },
+    "S25": {
+      "description": "Medium article on Ivan Zhao's background.",
+      "url": "https://medium.com/@ars/founders-journey-ivan-zhao-f0c978051754"
+    },
+    "S26": {
+      "description": "6sense data on Notion's market share in Collaborative Workspaces.",
+      "url": "https://www.6sense.com/company/notion/market-share/collaborative-workspaces"
+    },
+    "S27": {
+      "description": "Fueler article with Notion statistics for 2026.",
+      "url": "https://fueler.io/blog/notion-in-2026-usage-revenue-valuation-growth-statistics"
+    },
+    "S28": {
+      "description": "Wikipedia page for Notion.",
+      "url": "https://en.wikipedia.org/wiki/Notion_(productivity_software)"
+    },
+    "S29": {
+      "description": "PitchBook profile of Notion.",
+      "url": "https://pitchbook.com/profiles/company/110996-51"
+    },
+    "S3": {
+      "description": "Clay profile of Akshay Kothari, COO of Notion.",
+      "url": "https://clay.com/people/akshay-kothari"
+    },
+    "S30": {
+      "description": "VC DATALAB profile of Notion Labs Inc.",
+      "url": "https://vcdatalab.com/company/Notion-Labs-Inc"
+    },
+    "S31": {
+      "description": "Tracxn profile of a similarly named website development platform.",
+      "url": "https://tracxn.com/d/companies/notion/a3Kj1yR2BvM9L7G6hJ0pW8nZ7x"
+    },
+    "S32": {
+      "description": "Notion official pricing page.",
+      "url": "https://www.notion.so/pricing"
+    },
+    "S33": {
+      "description": "Purdue University profile of Akshay Kothari.",
+      "url": "https://engineering.purdue.edu/Engr/AboutUs/Administration/Facilities/Names/Akshay-D-Kothari"
+    },
+    "S34": {
+      "description": "SeedToScale profile of Akshay Kothari.",
+      "url": "https://seedtoscale.com/people/akshay-kothari/"
+    },
+    "S35": {
+      "description": "Preqin profile of Notion Labs, Inc.",
+      "url": "https://www.preqin.com/data/company/notion-labs/110996-51"
+    },
+    "S36": {
+      "description": "Creditsafe profile of Notion Labs, Inc.",
+      "url": "https://www.creditsafe.com/business-index/us/company-profile/notion-labs-inc-US150386888"
+    },
+    "S37": {
+      "description": "List of Notion customers.",
+      "url": "https://www.appsruntheworld.com/customers-database/products/view/notion"
+    },
+    "S38": {
+      "description": "Ivey Business Review analysis of Notion's business model.",
+      "url": "https://iveybusinessreview.ca/blogs/notion-the-zero-in-one-business-model/"
+    },
+    "S39": {
+      "description": "Analysis of Notion's growth strategy.",
+      "url": "https://www.howtheygrow.io/blog/how-notion-grows"
+    },
+    "S4": {
+      "description": "Traders Union biography of Ivan Zhao.",
+      "url": "https://tradersunion.com/interesting-facts/view/ivan_zhao/"
+    },
+    "S40": {
+      "description": "Competitive Intelligence Alliance case study on Notion's growth.",
+      "url": "https://cia.media/p/how-notion-grows/"
+    },
+    "S41": {
+      "description": "Examples of companies using Notion.",
+      "url": "https://www.bloomberry.com/companies-that-use-notion/"
+    },
+    "S42": {
+      "description": "PrivCo profile of Notion Labs, Inc.",
+      "url": "https://privco.com/company/notion-labs-inc"
+    },
+    "S43": {
+      "description": "Notion's official 'About' page.",
+      "url": "https://www.notion.so/about"
+    },
+    "S44": {
+      "description": "TheirStack list of companies using Notion.",
+      "url": "https://theirstack.com/companies-that-use-notion"
+    },
+    "S45": {
+      "description": "YouTube video discussing companies that use Notion.",
+      "url": "https://www.youtube.com/watch?v=VIDEO_ID"
+    },
+    "S5": {
+      "description": "Notion's official page on its operating values.",
+      "url": "https://www.notion.so/about/values"
+    },
+    "S6": {
+      "description": "LinkedIn article on Ivan Zhao's background.",
+      "url": "https://www.linkedin.com/pulse/ivan-zhao-co-founder-ceo-notion-visionary-behind-notions-success-story"
+    },
+    "S7": {
+      "description": "CloudEagle article on Notion's pricing tiers.",
+      "url": "https://www.cloudeagle.ai/blog/notion-pricing"
+    },
+    "S8": {
+      "description": "WorkAt Tech profile of Notion's mission and values.",
+      "url": "https://www.workat.tech/company/notion/mission-vision-values"
+    },
+    "S9": {
+      "description": "Contrary Research report on Notion's business.",
+      "url": "https://contrary.com/research/notion"
+    }
+  },
+  "strategy_and_direction": {
+    "mission_and_vision": "Notion's mission is to make toolmaking ubiquitous, empowering everyone to customize the software they use daily to their specific needs without coding. They are inspired by early computing pioneers who envisioned computers as tools to augment human intellect.",
+    "recent_developments": "Recent developments include the launch of Notion Calendar, the release of Notion AI, and the acquisition of Skiff to build out Notion Mail. The company has also been focusing on international expansion, especially in Asia and Europe.",
+    "stated_mission": "Notion's mission is to make toolmaking ubiquitous, empowering everyone to customize the software they use daily to their specific needs without coding. They are inspired by early computing pioneers who envisioned computers as tools to augment human intellect.",
+    "strategic_priorities": "Key priorities include expanding enterprise features to win larger customers, deepening AI integration to act as a proactive assistant, and bundling more tools into the platform to become the single source of truth for work. Recent acquisitions like Cron (for Calendar) and Skiff (for privacy and mail features) signal a strategy of building a comprehensive, all-in-one productivity suite."
+  },
+  "_fixture_note": "Captured from live Gemini integration test against notion.so. Tokens: 9265. Date: 2026-04-28."
+}

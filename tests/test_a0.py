@@ -292,7 +292,9 @@ def test_invalid_response_raises_schema_error(jobpilot_root: Path) -> None:
 
 
 def test_missing_required_section_raises(jobpilot_root: Path) -> None:
-    """Profile missing required sections raises ValueError from _validate_profile."""
+    """Profile missing required sections raises A0SchemaError from A0 validation."""
+    from agents.a0.gemini_client import A0SchemaError
+
     incomplete = {
         "instance_meta": {
             "generated": "2026-04-28T00:00:00Z",
@@ -310,7 +312,7 @@ def test_missing_required_section_raises(jobpilot_root: Path) -> None:
     mock_resp = _make_gemini_response(incomplete)
     with (
         patch("agents.a0.research.call_research", return_value=mock_resp),
-        pytest.raises(ValueError, match="missing required"),
+        pytest.raises(A0SchemaError, match="missing required"),
     ):
         role = _make_a0_role()
         _write_role_a1(role)
