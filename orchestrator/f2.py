@@ -20,13 +20,19 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from google import genai
+from google.genai import types
+
 from orchestrator import store
 
 LOGGER = logging.getLogger(__name__)
+MODEL_ID = "gemini-2.5-pro"
+_PROMPT_PATH = Path(__file__).resolve().parents[1] / "filters" / "F2.md"
 
 # ── Result / stance constants ────────────────────────────────────────────────
 
@@ -137,8 +143,19 @@ def run_f2(role: dict, company: dict) -> dict:
     stance = eval_result["stance"]
     reason = eval_result["reason"]
     judgment_calls = eval_result["gate_needs_judgment_call"]
+    synthesis = _prepare_synthesis(
+        eval_result.get("360_synthesis"),
+        company=company,
+        role=role,
+        rubric_version=rubric_version,
+        result=result,
+        stance=stance,
+        reason=reason,
+        judgment_calls=judgment_calls,
+    )
 
     _write_f2_result(role, role_id, result, stance, reason, judgment_calls, rubric_version)
+    _write_company_synthesis(role, company, synthesis)
 
     store.append_decision(
         {
@@ -180,8 +197,23 @@ def _call_llm(prompt: str) -> str:
             ]
         }
     """
-    LOGGER.info("LLM call would happen here (prompt_chars=%d)", len(prompt))
-    return json.dumps(_FIXTURE_PASS_RESPONSE)
+    LOGGER.info("Calling Gemini F2 evaluator (prompt_chars=%d)", len(prompt))
+    api_key = os.environ.get("GEMINI_API_KEY", "").strip()
+    if not api_key:
+        LOGGER.warning("GEMINI_API_KEY not set — using fixture F2 response")
+        return json.dumps(_FIXTURE_PASS_RESPONSE)
+
+    client = genai.Client(api_key=api_key)
+    response = client.models.generate_content(
+        model=MODEL_ID,
+        contents=prompt,
+        config=types.GenerateContentConfig(
+            response_mime_type="application/json",
+            response_schema=_f2_response_schema(),
+        ),
+    )
+    raw_text = getattr(response, "text", "") or ""
+    return _strip_markdown_fences(raw_text)
 
 
 # ── Prompt builder ────────────────────────────────────────────────────────────
@@ -189,8 +221,9 @@ def _call_llm(prompt: str) -> str:
 
 def _build_eval_prompt(role: dict, company: dict, rubric: dict) -> str:
     """Construct the full evaluation prompt for the LLM."""
+    instructions = _load_f2_instructions()
     sections = [
-        "# F2 Deep Rubric Evaluation",
+        instructions,
         "",
         "## Role Record",
         json.dumps(role, indent=2),
@@ -254,6 +287,7 @@ def _parse_llm_response(raw: str) -> dict[str, Any]:
         "stance": stance,
         "reason": reason,
         "gate_needs_judgment_call": norm_jc,
+        "360_synthesis": parsed.get("360_synthesis"),
     }
 
 
@@ -317,6 +351,22 @@ def _write_f2_result(
     role["gate_needs_judgment_call"] = judgment_calls or None
 
 
+def _write_company_synthesis(role: dict, company: dict, synthesis: dict[str, Any]) -> None:
+    """Persist the 360_synthesis block back to companies/<domain>.json via F2's lane."""
+    domain = (role.get("company_domain") or "").strip().lower()
+    if not domain:
+        return
+
+    try:
+        on_disk = store.read_company(domain)
+    except (FileNotFoundError, OSError):
+        on_disk = dict(company)
+
+    on_disk["360_synthesis"] = synthesis
+    store.write_company(domain, on_disk, writer_id="F2")
+    company["360_synthesis"] = synthesis
+
+
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 
@@ -332,6 +382,240 @@ def _load_rubric() -> dict[str, Any]:
     except Exception:
         LOGGER.exception("Failed to load rubric.json")
         return {}
+
+
+def _load_f2_instructions() -> str:
+    """Load the F2 prompt from filters/F2.md, with a compact fallback."""
+    try:
+        return _PROMPT_PATH.read_text(encoding="utf-8")
+    except OSError:
+        return (
+            "# F2 Deep Rubric Evaluation\n\n"
+            "Score the role and company against the full rubric. Return strict JSON "
+            "with result, stance, reason, gate_needs_judgment_call, and 360_synthesis."
+        )
+
+
+def _prepare_synthesis(
+    synthesis: Any,
+    *,
+    company: dict[str, Any],
+    role: dict[str, Any],
+    rubric_version: str | None,
+    result: str,
+    stance: str,
+    reason: str,
+    judgment_calls: list[dict[str, Any]],
+) -> dict[str, Any]:
+    """Normalize or synthesize the 360_synthesis block expected downstream."""
+    base = synthesis if isinstance(synthesis, dict) else {}
+    probes = _dedupe_probes(
+        list(base.get("first_call_probes") or [])
+        + [probe for item in judgment_calls for probe in item.get("recommended_probes", [])]
+    )
+    hard_failed = [item["gate_id"] for item in judgment_calls] if result == FAIL else []
+    hard_jc = [item["gate_id"] for item in judgment_calls] if result == BLOCKED else []
+
+    normalized = {
+        "synthesis_rubric_version": rubric_version,
+        "synthesis_generated": _now_iso(),
+        "synthesis_agent": "F2",
+        "synthesis_trigger": "initial",
+        "stance": stance,
+        "stance_one_line": str(base.get("stance_one_line") or reason or stance),
+        "stance_reasoning": str(base.get("stance_reasoning") or reason or ""),
+        "top_findings": _normalize_top_findings(base.get("top_findings")),
+        "scored_criteria_rollup": _normalize_scored_rollup(
+            base.get("scored_criteria_rollup"),
+            company=company,
+            stance=stance,
+        ),
+        "hard_gates_rollup": {
+            "all_passed": result == PASS and not judgment_calls,
+            "any_failed": hard_failed,
+            "any_judgment_call": hard_jc,
+        },
+        "override_rules_invoked": [str(x) for x in (base.get("override_rules_invoked") or [])],
+        "first_call_probes": probes,
+        "recommended_next_action": str(
+            base.get("recommended_next_action") or _default_next_action(stance, role)
+        ),
+    }
+    return normalized
+
+
+def _normalize_top_findings(raw: Any) -> list[dict[str, str]]:
+    items: list[dict[str, str]] = []
+    for item in raw or []:
+        if not isinstance(item, dict):
+            continue
+        finding = str(item.get("finding") or "").strip()
+        if not finding:
+            continue
+        severity = str(item.get("severity") or "notable")
+        finding_type = str(item.get("type") or "flag")
+        items.append(
+            {
+                "finding": finding,
+                "severity": severity,
+                "type": finding_type,
+            }
+        )
+    return items
+
+
+def _normalize_scored_rollup(raw: Any, *, company: dict[str, Any], stance: str) -> dict[str, str]:
+    rollup = raw if isinstance(raw, dict) else {}
+    return {
+        "manager_quality": str(rollup.get("manager_quality") or _default_manager_quality(stance)),
+        "build_mandate_tier": str(rollup.get("build_mandate_tier") or _infer_build_tier(company)),
+        "ai_mandate_binary": str(rollup.get("ai_mandate_binary") or _infer_ai_mandate(company)),
+        "growth_stage_fit": str(rollup.get("growth_stage_fit") or _infer_growth_stage_fit(company)),
+    }
+
+
+def _default_manager_quality(stance: str) -> str:
+    if stance == STANCE_GO:
+        return "strong"
+    if stance == STANCE_STOP:
+        return "weak"
+    return "unknown"
+
+
+def _infer_build_tier(company: dict[str, Any]) -> str:
+    tier = (company.get("hiring_signal") or {}).get("mandate_tier")
+    if tier in {"1", "2", "3"}:
+        return str(tier)
+    return "2"
+
+
+def _infer_ai_mandate(company: dict[str, Any]) -> str:
+    text = json.dumps(company, ensure_ascii=False).lower()
+    return "yes" if "ai" in text else "no"
+
+
+def _infer_growth_stage_fit(company: dict[str, Any]) -> str:
+    headcount = json.dumps((company.get("snapshot") or {}).get("headcount_estimate", "")).lower()
+    revenue = json.dumps((company.get("business_model") or {}).get("revenue_claim", "")).lower()
+    if any(token in headcount for token in ("15", "20", "50", "80", "100", "200")) or "arr" in revenue:
+        return "yes"
+    return "no"
+
+
+def _default_next_action(stance: str, role: dict[str, Any]) -> str:
+    if stance == STANCE_GO:
+        return "advance to application materials"
+    if stance == STANCE_PROBE:
+        return "resolve first-call probes before advancing"
+    if stance == STANCE_BLOCKED:
+        return "human review required before proceeding"
+    return f"pass on {role.get('role_id', 'this role')}"
+
+
+def _dedupe_probes(probes: list[str]) -> list[str]:
+    seen: set[str] = set()
+    ordered: list[str] = []
+    for probe in probes:
+        normalized = str(probe).strip()
+        if not normalized or normalized in seen:
+            continue
+        seen.add(normalized)
+        ordered.append(normalized)
+    return ordered
+
+
+def _strip_markdown_fences(text: str) -> str:
+    stripped = text.strip()
+    if stripped.startswith("```"):
+        stripped = stripped.split("\n", 1)[1] if "\n" in stripped else stripped
+        if stripped.endswith("```"):
+            stripped = stripped.rsplit("\n", 1)[0]
+    return stripped.strip()
+
+
+def _f2_response_schema() -> dict[str, Any]:
+    return {
+        "type": "object",
+        "properties": {
+            "result": {"type": "string", "enum": [PASS, FAIL, BLOCKED]},
+            "stance": {
+                "type": "string",
+                "enum": [STANCE_GO, STANCE_PROBE, STANCE_STOP, STANCE_BLOCKED],
+            },
+            "reason": {"type": "string"},
+            "gate_needs_judgment_call": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "gate_id": {"type": "string"},
+                        "reason": {"type": "string"},
+                        "recommended_probes": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                        },
+                    },
+                    "required": ["gate_id", "reason", "recommended_probes"],
+                },
+            },
+            "360_synthesis": {
+                "type": "object",
+                "properties": {
+                    "stance_one_line": {"type": "string"},
+                    "stance_reasoning": {"type": "string"},
+                    "top_findings": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "finding": {"type": "string"},
+                                "severity": {
+                                    "type": "string",
+                                    "enum": ["critical", "material", "notable"],
+                                },
+                                "type": {
+                                    "type": "string",
+                                    "enum": ["positive", "negative", "flag"],
+                                },
+                            },
+                            "required": ["finding", "severity", "type"],
+                        },
+                    },
+                    "scored_criteria_rollup": {
+                        "type": "object",
+                        "properties": {
+                            "manager_quality": {
+                                "type": "string",
+                                "enum": ["strong", "acceptable", "weak", "unknown"],
+                            },
+                            "build_mandate_tier": {
+                                "type": "string",
+                                "enum": ["1", "2", "3"],
+                            },
+                            "ai_mandate_binary": {
+                                "type": "string",
+                                "enum": ["yes", "no"],
+                            },
+                            "growth_stage_fit": {
+                                "type": "string",
+                                "enum": ["yes", "no"],
+                            },
+                        },
+                    },
+                    "override_rules_invoked": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                    },
+                    "first_call_probes": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                    },
+                    "recommended_next_action": {"type": "string"},
+                },
+            },
+        },
+        "required": ["result", "stance", "reason", "gate_needs_judgment_call"],
+    }
 
 
 def _now_iso() -> str:

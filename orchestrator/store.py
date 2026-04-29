@@ -51,8 +51,10 @@ def write_company(domain: str, data: dict[str, Any], writer_id: str) -> None:
     """Validate and atomically write a company profile."""
     path = _company_path(domain)
     _require_lane_logged(writer_id, path)
-    _validate_json_schema(data, COMPANY_SCHEMA_PATH)
     with _file_lock(path):
+        existing = _read_json(path) if path.exists() else None
+        _validate_company_scope_logged(writer_id, path, existing, data)
+        _validate_json_schema(data, COMPANY_SCHEMA_PATH)
         _atomic_write_json(path, data)
 
 
@@ -141,6 +143,35 @@ def _validate_role_scope_logged(
 ) -> None:
     try:
         _validate_role_scope(writer_id, existing, new_data)
+    except LaneViolationError as exc:
+        append_decision(
+            {
+                "event": "lane_violation",
+                "writer_id": writer_id,
+                "path": normalize_path(path.relative_to(ROOT)),
+                "reason": str(exc),
+            }
+        )
+        raise
+
+
+def _validate_company_scope(
+    writer_id: str, existing: dict[str, Any] | None, new_data: dict[str, Any]
+) -> None:
+    if writer_id == "F2":
+        if existing is None:
+            return
+        _require_changed_paths_within(existing or {}, new_data, ("360_synthesis",))
+
+
+def _validate_company_scope_logged(
+    writer_id: str,
+    path: Path,
+    existing: dict[str, Any] | None,
+    new_data: dict[str, Any],
+) -> None:
+    try:
+        _validate_company_scope(writer_id, existing, new_data)
     except LaneViolationError as exc:
         append_decision(
             {

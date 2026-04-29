@@ -1,0 +1,77 @@
+{
+  "_fixture_note": "Captured from live Gemini F2 integration test against the A0 Notion live fixture.",
+  "f2_result": {
+    "status": "blocked",
+    "stance": "probe",
+    "reason": "The opportunity is strong, with clear build and AI mandates at a top-tier company, but is blocked by a critical ambiguity on the 'relocation_required' hard gate which must be resolved before proceeding.",
+    "checked_at": "2026-04-28T17:43:03Z",
+    "rubric_version": "0.2",
+    "synthesis_ref": null
+  },
+  "gate_needs_judgment_call": [
+    {
+      "gate_id": "relocation_required",
+      "reason": "The company profile indicates location fit 'needs_judgment_call'. The JD states 'San Francisco or remote', but does not specify if this remote option is global or restricted (e.g., US-only). This is a hard gate that must be clarified.",
+      "recommended_probes": [
+        "What are the specific geographical or time-zone constraints for the remote work option for this COO role?",
+        "Is the company set up to employ a C-level executive based in Warsaw, Poland?",
+        "Given the global nature of the role, what is the expectation for travel to the San Francisco headquarters?"
+      ]
+    }
+  ],
+  "company_360_synthesis": {
+    "first_call_probes": [
+      "What are the specific geographical or time-zone constraints for the remote work option for this COO role? Is Warsaw, Poland a viable location?",
+      "The current COO, Akshay Kothari, was instrumental in building many functions from the ground up. What parts of that work are you looking for the next COO to hand off and institutionalize, and where is the new 'build' mandate focused?",
+      "Beyond Notion AI as a product feature, how does the leadership team think about using AI to re-engineer Notion's own internal operations and business processes in the next 24 months?",
+      "Can you describe a recent, difficult decision where you and your leadership team disagreed? How did you work through it?",
+      "What are the specific geographical or time-zone constraints for the remote work option for this COO role?",
+      "Is the company set up to employ a C-level executive based in Warsaw, Poland?",
+      "Given the global nature of the role, what is the expectation for travel to the San Francisco headquarters?"
+    ],
+    "hard_gates_rollup": {
+      "all_passed": false,
+      "any_failed": [],
+      "any_judgment_call": [
+        "relocation_required"
+      ]
+    },
+    "override_rules_invoked": [],
+    "recommended_next_action": "Schedule a first call with the recruiter or hiring manager with the primary goal of resolving the location ambiguity. Do not proceed with further customization or outreach until this hard gate is cleared.",
+    "scored_criteria_rollup": {
+      "ai_mandate_binary": "yes",
+      "build_mandate_tier": "1",
+      "growth_stage_fit": "yes",
+      "manager_quality": "acceptable"
+    },
+    "stance": "probe",
+    "stance_one_line": "Probe to resolve location ambiguity; Notion is a top-tier opportunity if the remote-work hard gate can be cleared.",
+    "stance_reasoning": "Notion presents as a high-quality opportunity. It's a market leader at scale with a clear Tier 1 build mandate for a strategic COO role and a demonstrated commitment to AI. All fundamental criteria (growth stage, AI focus, business model) are strong. However, the process is blocked by a critical, unresolved question on the 'relocation_required' hard gate. The ambiguity around global remote eligibility for this C-level role must be the first point of clarification. If it can be resolved favorably, this becomes a 'Go'.",
+    "synthesis_agent": "F2",
+    "synthesis_generated": "2026-04-28T17:43:03Z",
+    "synthesis_rubric_version": "0.2",
+    "synthesis_trigger": "initial",
+    "top_findings": [
+      {
+        "finding": "The role is blocked by ambiguity on the 'relocation_required' hard gate. It is unclear if 'remote' includes Poland for a C-level executive.",
+        "severity": "critical",
+        "type": "negative"
+      },
+      {
+        "finding": "The company has a clear Tier 1 'diagnosed need' build mandate, seeking a strategic partner to help the CEO scale global operations in its next growth phase.",
+        "severity": "material",
+        "type": "positive"
+      },
+      {
+        "finding": "Notion has a strong, integrated AI mandate, with AI positioned as a core product and a strategic priority for the entire platform.",
+        "severity": "material",
+        "type": "positive"
+      },
+      {
+        "finding": "Notion is a well-capitalized, high-growth market leader ($10B valuation, 1200+ employees) that fits the ideal growth-stage profile.",
+        "severity": "notable",
+        "type": "positive"
+      }
+    ]
+  }
+}

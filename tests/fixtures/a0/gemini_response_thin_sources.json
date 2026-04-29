@@ -1,0 +1,113 @@
+{
+  "_fixture_note": "Same profile as clean fixture but used to simulate <3 grounding sources scenario. Sources populated only in source_index to simulate what Gemini returns when grounding metadata is sparse.",
+  "instance_meta": {
+    "generated": "2026-04-28T10:00:00Z",
+    "target_role": "Chief Operating Officer",
+    "role_url": "https://acmecorp.io/jobs/coo",
+    "research_depth": "light",
+    "researcher": "A0",
+    "confidence_notes": "Gemini 2.5 Pro + google_search grounding. Limited sources found on first pass."
+  },
+  "name_confusion_check": {
+    "none_found": true,
+    "similar_names_found": []
+  },
+  "snapshot": {
+    "legal_name": "Acme Corp Inc.",
+    "dba": "AcmeCorp",
+    "domain": "acmecorp.io",
+    "secondary_domains": [],
+    "founded": "2019",
+    "hq": "San Francisco, CA, USA",
+    "primary_market": "USA",
+    "sector": "B2B SaaS",
+    "sub_sector": "Operations tooling",
+    "headcount_estimate": null,
+    "funding_stage": "Series B",
+    "profitability_claim": null
+  },
+  "business_model": {
+    "revenue_model": "SaaS subscription",
+    "pricing": null,
+    "core_services": ["Workflow automation"],
+    "structure": null,
+    "customer_base_size_claim": null,
+    "revenue_claim": null,
+    "customer_satisfaction_signals": null
+  },
+  "strategy_and_direction": {
+    "stated_mission": null,
+    "growth_vector": null,
+    "recent_moves": [],
+    "strategic_bets": [],
+    "tam_claim": null
+  },
+  "leadership": {
+    "ceo": {
+      "name": "Sarah Chen",
+      "title": "CEO & Co-founder",
+      "origin": "United States",
+      "current_base": null,
+      "background": null,
+      "public_voice_signal": null,
+      "war_position": {
+        "applies": false,
+        "value": null,
+        "evidence": "N/A — non-RU/BY origin",
+        "research_scope": "N/A",
+        "confidence": "high"
+      },
+      "parallel_business_flag": {
+        "present": false,
+        "businesses": []
+      },
+      "concentration_risk_notes": null
+    },
+    "co_founders": [],
+    "c_suite": [],
+    "board": [],
+    "advisors_referenced_in_role": [],
+    "leadership_pattern_observations": ["Limited public data available on first pass"]
+  },
+  "market_view_outside_in": {
+    "competitive_set": [],
+    "market_regulatory_context": null,
+    "macro_tailwinds": [],
+    "macro_headwinds": []
+  },
+  "insider_signal_self_description": {
+    "jd_language_excerpts": [],
+    "ceo_recent_public_voice": [],
+    "dissonance_flags": []
+  },
+  "hiring_signal": {
+    "role_seniority": "C-suite equivalent",
+    "comp_range": null,
+    "location_policy": "Hybrid",
+    "location_fit_for_user": "Warsaw-compatible — requires confirmation in call",
+    "mandate_tier": null,
+    "hand_off_test_status": "unknown — test in call",
+    "red_flags_in_jd": [],
+    "green_flags_in_jd": []
+  },
+  "risks_and_open_questions": {
+    "regulatory_risk": {
+      "level": "low",
+      "notes": "Insufficient data on first pass — assumed low for standard SaaS."
+    },
+    "litigation_risk": {
+      "level": "low",
+      "active_cases": []
+    },
+    "governance_flags": [],
+    "domain_exclusion_check": "PASS — no excluded domain patterns detected from available data"
+  },
+  "gate_needs_judgment_call": {
+    "blocked": false,
+    "items": []
+  },
+  "source_index": {
+    "S1": "https://acmecorp.io/about",
+    "S2": "https://linkedin.com/company/acmecorp"
+  }
+}

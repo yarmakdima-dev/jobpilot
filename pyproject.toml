@@ -4,10 +4,14 @@ version = "0.1.0"
 description = "Agentic job application system foundation"
 requires-python = ">=3.11"
 dependencies = [
+  "fastapi>=0.115.0,<1",
+  "google-genai>=1.0.0",
   "jinja2>=3.1.0,<4",
   "jsonschema>=4.23.0,<5",
   "playwright>=1.44.0",
+  "python-multipart>=0.0.9,<1",
   "pyyaml>=6.0.2,<7",
+  "uvicorn>=0.30.0,<1",
 ]
 
 [project.optional-dependencies]
@@ -17,9 +21,12 @@ dev = [
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+markers = [
+  "integration: mark test as integration (requires live Gemini API, pass --run-integration)",
+]
 
 [tool.setuptools.packages.find]
-include = ["orchestrator*"]
+include = ["orchestrator*", "agents*", "ui*"]
 
 [tool.black]
 line-length = 88

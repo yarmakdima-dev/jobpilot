@@ -14,6 +14,8 @@ companies/
 roles/
 pipeline.json
 decisions.log
+pipeline.json.lock
+decisions.log.lock
 inbox_events/
 reports/
 output/
