@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import copy
 import html
 import json
 import re
@@ -188,18 +189,37 @@ def run_next_action(role_id: str) -> RedirectResponse:
         return RedirectResponse(f"/roles/{role_id}", status_code=303)
 
     row = _pipeline_row(role_id, fallback_role=role)
-    result = action.handler(role)
-    target_state = result.next_state if result.next_state is not None else action.next_state
-    reason = result.reason if result.reason != "stub_success" else action.reason
-    role = _transition_role(role, target_state, reason)
-    store.write_role(role_id, role, writer_id="system")
-    _sync_pipeline_row(row, role, last_error=None)
+    try:
+        result = action.handler(role)
+        target_state = result.next_state if result.next_state is not None else action.next_state
+        reason = result.reason if result.reason != "stub_success" else action.reason
+        role = _transition_role(role, target_state, reason)
+        store.write_role(role_id, role, writer_id="system")
+        _sync_pipeline_row(row, role, last_error=None)
+    except Exception as exc:
+        failed_role = _safe_read_role(role_id) or role
+        failed_role = _transition_role(
+            failed_role, "error", f"{action.agent_id} manual run failed: {exc}"
+        )
+        store.write_role(role_id, failed_role, writer_id="system")
+        _sync_pipeline_row(row, failed_role, last_error=str(exc))
+        store.append_decision(
+            {
+                "event": "human_run_next_failed",
+                "agent_id": "human",
+                "role_id": role_id,
+                "target_agent": action.agent_id,
+                "error": str(exc),
+            }
+        )
     return RedirectResponse(f"/roles/{role_id}", status_code=303)
 
 
 @app.post("/roles/{role_id}/run-a0")
 def run_a0_action(role_id: str) -> RedirectResponse:
     role = store.read_role(role_id)
+    previous_company = copy.deepcopy(_safe_read_company(role.get("company_domain")))
+    previous_state = role.get("pipeline_state", "researching")
     _delete_company_profile(role.get("company_domain"))
     role["pipeline_state"] = "researching"
     try:
@@ -208,9 +228,20 @@ def run_a0_action(role_id: str) -> RedirectResponse:
         _sync_pipeline_row(_pipeline_row(role_id, fallback_role=role), role, last_error=None)
         store.write_role(role_id, role, writer_id="system")
     except Exception as exc:
-        role = _transition_role(role, "research_failed", f"A0 rerun failed: {exc}")
-        _sync_pipeline_row(_pipeline_row(role_id, fallback_role=role), role, last_error=str(exc))
-        store.write_role(role_id, role, writer_id="system")
+        if previous_company is not None:
+            store.write_company(role["company_domain"], previous_company, writer_id="human")
+        failed_role = _safe_read_role(role_id) or role
+        failed_role = _transition_role(
+            failed_role,
+            previous_state if previous_state != "researching" else "research_failed",
+            f"A0 rerun failed: {exc}",
+        )
+        _sync_pipeline_row(
+            _pipeline_row(role_id, fallback_role=failed_role),
+            failed_role,
+            last_error=str(exc),
+        )
+        store.write_role(role_id, failed_role, writer_id="system")
         store.append_decision(
             {
                 "event": "human_run_a0_failed",
@@ -225,6 +256,9 @@ def run_a0_action(role_id: str) -> RedirectResponse:
 @app.post("/roles/{role_id}/run-f2")
 def run_f2_action(role_id: str) -> RedirectResponse:
     role = store.read_role(role_id)
+    previous_f2 = copy.deepcopy(role["filter_status"]["f2"])
+    previous_judgment_calls = copy.deepcopy(role.get("gate_needs_judgment_call"))
+    previous_state = role.get("pipeline_state", "researched")
     role["filter_status"]["f2"] = {
         "status": "pending",
         "stance": None,
@@ -236,16 +270,36 @@ def run_f2_action(role_id: str) -> RedirectResponse:
     role["gate_needs_judgment_call"] = None
     store.write_role(role_id, role, writer_id="human")
     company = _safe_read_company(role.get("company_domain")) or {}
-    run_f2(role, company)
-    next_state = {
-        "pass": "f2_passed",
-        "fail": "f2_failed",
-        "blocked": "f2_blocked",
-    }.get(role["filter_status"]["f2"]["status"], "f2_failed")
-    role = store.read_role(role_id)
-    role = _transition_role(role, next_state, "human_triggered_f2_rerun")
-    store.write_role(role_id, role, writer_id="system")
-    _sync_pipeline_row(_pipeline_row(role_id, fallback_role=role), role, last_error=None)
+    try:
+        run_f2(role, company)
+        next_state = {
+            "pass": "f2_passed",
+            "fail": "f2_failed",
+            "blocked": "f2_blocked",
+        }.get(role["filter_status"]["f2"]["status"], "f2_failed")
+        role = store.read_role(role_id)
+        role = _transition_role(role, next_state, "human_triggered_f2_rerun")
+        store.write_role(role_id, role, writer_id="system")
+        _sync_pipeline_row(_pipeline_row(role_id, fallback_role=role), role, last_error=None)
+    except Exception as exc:
+        failed_role = _safe_read_role(role_id) or role
+        failed_role["filter_status"]["f2"] = previous_f2
+        failed_role["gate_needs_judgment_call"] = previous_judgment_calls
+        failed_role["pipeline_state"] = previous_state
+        store.write_role(role_id, failed_role, writer_id="human")
+        _sync_pipeline_row(
+            _pipeline_row(role_id, fallback_role=failed_role),
+            failed_role,
+            last_error=str(exc),
+        )
+        store.append_decision(
+            {
+                "event": "human_run_f2_failed",
+                "agent_id": "human",
+                "role_id": role_id,
+                "error": str(exc),
+            }
+        )
     return RedirectResponse(f"/roles/{role_id}", status_code=303)
 
 
@@ -407,6 +461,13 @@ def _safe_read_company(domain: str | None) -> dict[str, Any] | None:
         return None
     try:
         return store.read_company(domain)
+    except FileNotFoundError:
+        return None
+
+
+def _safe_read_role(role_id: str) -> dict[str, Any] | None:
+    try:
+        return store.read_role(role_id)
     except FileNotFoundError:
         return None
 

@@ -146,3 +146,88 @@ def test_role_actions_can_advance_and_clear_judgment_calls(tmp_path: Path, monke
     assert updated_role["gate_needs_judgment_call"] is None
     assert updated_role["pipeline_state"] == "ready_to_submit"
     assert updated_pipeline["pipeline_state"] == "ready_to_submit"
+
+
+def test_run_next_failure_moves_role_to_error(tmp_path: Path, monkeypatch) -> None:
+    configure_store_root(tmp_path, monkeypatch)
+    role = make_role("delta-coo-20260428", "f2_passed")
+    _write_role(role)
+    store.write_pipeline([make_pipeline_row(role)], writer_id="system")
+
+    from ui import app as ui_app
+
+    def boom(*_args) -> None:
+        raise RuntimeError("mailbox unavailable")
+
+    monkeypatch.setattr(ui_app, "next_action", lambda _role: type("Action", (), {
+        "agent_id": "A4",
+        "next_state": "applied",
+        "reason": "stub_submission_complete",
+        "handler": boom,
+    })())
+
+    client = TestClient(app)
+    response = client.post(f"/roles/{role['role_id']}/run-next", follow_redirects=False)
+
+    updated_role = store.read_role(role["role_id"])
+    updated_pipeline = store.read_pipeline()[0]
+
+    assert response.status_code == 303
+    assert updated_role["pipeline_state"] == "error"
+    assert updated_pipeline["pipeline_state"] == "error"
+    assert updated_pipeline["last_error"] == "mailbox unavailable"
+
+
+def test_run_a0_failure_restores_previous_company_profile(tmp_path: Path, monkeypatch) -> None:
+    configure_store_root(tmp_path, monkeypatch)
+    role = make_role("epsilon-coo-20260428", "researching")
+    _write_role(role)
+    store.write_pipeline([make_pipeline_row(role)], writer_id="system")
+    company = {
+        "instance_meta": {
+            "generated": "2026-04-28T10:00:00Z",
+            "target_role": "Chief Operating Officer",
+            "role_url": "https://epsilon.com/jobs/coo",
+            "research_depth": "medium",
+            "researcher": "A0",
+            "confidence_notes": "Complete",
+        },
+        "name_confusion_check": {"none_found": True, "similar_names_found": []},
+        "snapshot": {
+            "legal_name": "Epsilon Inc.",
+            "domain": "epsilon.com",
+            "secondary_domains": [],
+            "founded": "2020",
+            "hq": "Remote",
+            "primary_market": "Global",
+            "sector": "Software",
+            "sub_sector": "Productivity SaaS",
+            "headcount_estimate": "80",
+            "funding_stage": "Series B",
+            "profitability_claim": "Unknown",
+        },
+        "business_model": {"revenue_model": "SaaS", "core_services": ["Productivity"], "pricing": None, "structure": None, "customer_base_size_claim": None, "revenue_claim": None, "customer_satisfaction_signals": None},
+        "strategy_and_direction": {"stated_mission": "Ship tools", "growth_vector": "Enterprise", "recent_moves": [], "strategic_bets": [], "tam_claim": None},
+        "leadership": {"leadership_pattern_observations": []},
+        "market_view_outside_in": {"competitive_set": [], "market_regulatory_context": None, "macro_tailwinds": [], "macro_headwinds": []},
+        "insider_signal_self_description": {"jd_language_excerpts": [], "ceo_recent_public_voice": [], "dissonance_flags": []},
+        "hiring_signal": {"role_seniority": "exec", "comp_range": "unknown", "location_policy": "remote", "location_fit_for_user": "needs review", "mandate_tier": "1", "hand_off_test_status": "unknown", "red_flags_in_jd": [], "green_flags_in_jd": []},
+        "risks_and_open_questions": {"regulatory_risk": {"level": "low", "notes": ""}, "litigation_risk": {"level": "low", "active_cases": []}, "governance_flags": [], "domain_exclusion_check": "PASS"},
+        "gate_needs_judgment_call": {"blocked": False, "items": []},
+        "source_index": {"S1": "https://epsilon.com"},
+    }
+    store.write_company("epsilon.com", company, writer_id="A0")
+
+    from ui import app as ui_app
+
+    monkeypatch.setattr(ui_app, "run_a0", lambda _role: (_ for _ in ()).throw(RuntimeError("Gemini down")))
+
+    client = TestClient(app)
+    response = client.post(f"/roles/{role['role_id']}/run-a0", follow_redirects=False)
+
+    restored_company = store.read_company("epsilon.com")
+    updated_pipeline = store.read_pipeline()[0]
+
+    assert response.status_code == 303
+    assert restored_company["snapshot"]["legal_name"] == "Epsilon Inc."
+    assert updated_pipeline["last_error"] == "Gemini down"
